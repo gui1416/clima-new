@@ -94,6 +94,18 @@ negado, não só disciplina.
 `tests/integracao/test_rls.py::test_papel_app_nao_ignora_rls` falha alto se um
 deploy for configurado com papel superusuário.
 
+**Ao criar tabela nova com `tenant_id`, escreva uma política por comando que a
+tabela realmente usa.** Com RLS forçada, um comando sem política não dá erro — ele
+simplesmente não afeta linha nenhuma. A migration 003 existe porque a 001 criou
+só `FOR SELECT` e `FOR INSERT`, e o `UPDATE` que fecha o `ingest_run` passou meses
+de código sem nunca alterar nada: `resultado` ficava NULL, e com isso a saúde das
+fontes, a detecção de lacuna e a requisição condicional mentiam juntas. O dado
+bruto estava correto; a instrumentação que deveria provar isso é que estava
+quebrada. Nenhuma exceção em lugar nenhum.
+
+`raw_payloads` e `payload_bodies` continuam sem política de `UPDATE`/`DELETE` de
+propósito — ali a ausência é a garantia de imutabilidade.
+
 Uma ressalva ao princípio, adotada aqui de forma consciente: a ingestão é
 **compartilhada**. Uma coleta do USGS serve todos os clientes; duplicar o fetch
 por tenant seria absurdo. Então existe um **tenant de sistema**

@@ -89,6 +89,34 @@ async def test_nao_escreve_no_tenant_alheio(tenant_a: uuid.UUID, tenant_b: uuid.
             )
 
 
+async def test_run_pode_ser_fechado(dono: AsyncEngine) -> None:
+    """RLS com política só de SELECT/INSERT faz UPDATE não afetar linha nenhuma —
+    sem erro. O ``ingest_run`` é fechado por UPDATE, então a falta dessa política
+    deixava todo run aberto e ``resultado`` NULL para sempre."""
+    run_id = await _inserir_run(dono, TENANT_SISTEMA)
+
+    async with sessao() as s:
+        r = await s.execute(
+            text("UPDATE ingest_runs SET resultado = 'ok' WHERE id = :i"), {"i": run_id}
+        )
+        assert r.rowcount == 1, "UPDATE não encontrou a linha — falta política FOR UPDATE"
+
+    async with sessao() as s:
+        assert (
+            await s.execute(text("SELECT resultado FROM ingest_runs WHERE id = :i"), {"i": run_id})
+        ).scalar_one() == "ok"
+
+
+async def test_nao_atualiza_run_de_outro_tenant(dono: AsyncEngine, tenant_b: uuid.UUID) -> None:
+    run_id = await _inserir_run(dono, tenant_b)
+
+    async with sessao() as s:  # sessão do tenant de sistema
+        r = await s.execute(
+            text("UPDATE ingest_runs SET resultado = 'ok' WHERE id = :i"), {"i": run_id}
+        )
+        assert r.rowcount == 0
+
+
 async def test_app_nao_apaga_payload_raw(dono: AsyncEngine) -> None:
     """Imutabilidade do ativo histórico como privilégio negado, não como disciplina."""
     for tabela in ("raw_payloads", "payload_bodies"):

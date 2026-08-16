@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from clima.connectors.base import Resposta, Validadores
 from clima.dominio import ResultadoColeta
-from clima.ingest.continuidade import lacunas
+from clima.ingest.continuidade import lacunas, silenciosas
 from clima.ingest.runner import coletar_fonte
 
 CORPO = b'{"type":"FeatureCollection","features":[]}'
@@ -163,6 +163,30 @@ async def test_falha_de_rede_registra_run_com_erro(dono: AsyncEngine, instalar) 
     assert resultado == "erro"
     assert "ConnectError" in erro
     assert fim is not None, "run precisa ser fechado mesmo em falha, senão vira lacuna fantasma"
+
+
+async def test_coleta_alimenta_a_saude_da_fonte(dono: AsyncEngine, instalar) -> None:  # noqa: ANN001
+    """A cascata que importa: se o run não é fechado, `resultado` fica NULL e as
+    três coisas que filtram por ele mentem juntas — saúde da fonte, detecção de
+    lacuna e requisição condicional. O dado bruto continua correto, e a
+    instrumentação que deveria provar isso é que quebra."""
+    instalar(ConectorFalso(_ok()))
+    await coletar_fonte("usgs")
+
+    async with dono.connect() as c:
+        ultima_ok, erros = (
+            await c.execute(
+                text(
+                    "SELECT ultima_coleta_ok, erros_1h FROM v_saude_fontes WHERE source_id = 'usgs'"
+                )
+            )
+        ).one()
+
+    assert ultima_ok is not None, "coleta bem-sucedida não apareceu em v_saude_fontes"
+    assert erros == 0
+
+    # Nenhuma fonte deve constar como silenciosa logo após uma coleta boa.
+    assert [s.source_id for s in await silenciosas()] == []
 
 
 async def test_lacuna_e_detectada(dono: AsyncEngine) -> None:
