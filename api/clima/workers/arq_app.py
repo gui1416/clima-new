@@ -17,6 +17,7 @@ from arq.connections import RedisSettings
 from clima.config import config
 from clima.db import encerrar
 from clima.ingest import coletar_ativas, garantir_particoes, verificar
+from clima.correlation import correlacionar
 from clima.ingest.parser import analisar_pendentes
 from clima.logs import configurar, log
 
@@ -29,6 +30,10 @@ async def tarefa_coletar(ctx: dict[str, Any]) -> dict[str, str]:
 
 async def tarefa_analisar(ctx: dict[str, Any]) -> dict[str, int]:
     return await analisar_pendentes()
+
+
+async def tarefa_correlacionar(ctx: dict[str, Any]) -> dict[str, int]:
+    return (await correlacionar()).como_dict()
 
 
 async def tarefa_particoes(ctx: dict[str, Any]) -> list[str]:
@@ -66,6 +71,9 @@ class WorkerSettings:
         # 20 s depois da coleta: o payload do minuto já está gravado quando o
         # parser roda, então o atraso entre observar e publicar fica abaixo de 1 min.
         cron(tarefa_analisar, second=20, run_at_startup=True, max_tries=1),
+        # 40 s: depois da coleta (0 s) e da análise (20 s), para correlacionar o
+        # que acabou de entrar dentro do mesmo minuto.
+        cron(tarefa_correlacionar, second=40, run_at_startup=True, max_tries=1),
         cron(tarefa_particoes, hour=3, minute=10, run_at_startup=True),
         cron(tarefa_continuidade, minute=set(range(0, 60, 5)), second=30),
     ]

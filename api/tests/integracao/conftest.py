@@ -36,7 +36,11 @@ API_DIR = Path(__file__).resolve().parents[2]
 
 # Tabelas que cada teste começa vazias. Numa única instrução, porque source_records
 # e parse_runs referenciam raw_payloads — truncar só o pai falharia por FK.
-MUTAVEIS = "source_records, parse_runs, raw_payloads, payload_bodies, ingest_runs"
+MUTAVEIS = (
+    "event_field_claims, canonical_event_membros, canonical_event_snapshots, "
+    "canonical_events, record_links, source_records, parse_runs, raw_payloads, "
+    "payload_bodies, ingest_runs"
+)
 
 
 @pytest.fixture(scope="session")

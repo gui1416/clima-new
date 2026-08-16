@@ -26,12 +26,20 @@ meteorológico de uso geral (chuva de terça não é evento; enchente é).
 
 ## Estado atual do repositório
 
-**Fases 0, 1 e 3 feitas** ([plano](docs/plano-de-construcao.md)): o USGS é
-coletado a cada 60 s, analisado para `source_records` append-only e servido em
-`/api/eventos`; a interface consome isso. **O motor de correlação — Fase 2, o
-diferencial — não existe.** Toda resposta de lista carrega `deduplicado: false`, e
-`fontes_confirmando` vale 1 para tudo. Não remova esses avisos antes do motor
-existir: eles são o que impede o produto de afirmar consolidação que não houve.
+**Fases 0, 1, 2 e 3 construídas** ([plano](docs/plano-de-construcao.md)): o USGS é
+coletado a cada 60 s, analisado para `source_records` append-only, correlacionado em
+`canonical_events`, e servido em `/api/eventos`.
+
+**Mas o motor de correlação não tem o que deduplicar: existe uma fonte só.** O feed
+do USGS entrega eventos já mesclados, então hoje cada `source_record` vira um evento
+canônico de uma fonte. O motor está exercitado por testes (inclusive recusando dois
+sismos reais a 0,5 km e 62 s de distância), e o portão **G2 não está atendido** —
+exige positivo real de uma segunda fonte. `api/eval/avaliar_g2.py` mede e explica
+por quê.
+
+Toda resposta de lista carrega `deduplicado: false` e `fontes_confirmando: 1`. Não
+remova esses avisos antes de haver segunda fonte: são o que impede o produto de
+afirmar consolidação que não houve.
 
 A API de produto fica sob **`/api`**. Sem o prefixo ela colide com as rotas do SPA
 (`/eventos`, `/fontes`) e o navegador recebe JSON em vez da aplicação.
@@ -138,6 +146,11 @@ Onde um erro causa dano silencioso em vez de exceção. Detalhes em
 4. **`analisar()` nunca toca a rede.** O parser lê de `payload_bodies` e é função
    pura. É o que faz bug de parser virar replay em vez de perda de dado, e o que
    permite testá-lo contra payload real gravado.
+5. **A identidade de um evento canônico vem dos membros, não de `cluster_key`.**
+   `cluster_key` é rótulo. Resolver identidade por chave derivada fazia o evento
+   trocar de id quando entrava membro de outra fonte, orfanando o histórico — ver
+   `motor._resolver_evento`. Evento absorvido numa fusão nunca é apagado: ganha
+   `fundido_em` e sai da view de estado atual.
 
 ## Arquitetura do protótipo
 
