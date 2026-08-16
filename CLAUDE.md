@@ -26,36 +26,80 @@ meteorológico de uso geral (chuva de terça não é evento; enchente é).
 
 ## Estado atual do repositório
 
-Um único arquivo: [clima-global-prototipo-v2.html](clima-global-prototipo-v2.html)
-— protótipo navegável de alta fidelidade, 1.520 linhas, ~296 KB, 6 rotas, 18
-eventos de demonstração com coordenadas reais e geometria Natural Earth 1:50m.
+**Estamos na Fase 0** do [plano](docs/plano-de-construcao.md): coleta de
+`payload_raw` do USGS. Não existe ainda parser, motor de correlação nem API de
+produto — nesta ordem, nas Fases 1, 2 e 3.
 
-Sem back-end, sem build, sem dependências, sem `package.json`, sem testes, sem
-commits ainda (`main` está vazia). O arquivo é autocontido: nenhum `fetch`,
-nenhum CDN, nenhuma fonte externa — abre direto via `file://`.
+Uma pasta por superfície, sempre. Nada de back-end fora de `/api`.
 
-**Serve como especificação visual executável, não como base de código de
-produção.** Ao construir o produto real, trate-o como referência de design e
-comportamento a ser reimplementado, não como código a ser estendido.
+| Caminho | O que é |
+|---|---|
+| [api/](api/) | Back-end inteiro: FastAPI, conectores, ingestão, workers, migrations |
+| [web/](web/) | Front-end web (React + TS + MapLibre GL). Vazio até a Fase 4 |
+| [mobile/](mobile/) | App móvel. Fora da v1; o lugar está reservado |
+| [docs/](docs/) | Plano de construção |
+| [clima-global-prototipo-v2.html](clima-global-prototipo-v2.html) | Protótipo, congelado |
 
-O caminho até o produto está em
-[docs/plano-de-construcao.md](docs/plano-de-construcao.md) — arquitetura,
-esquema do banco, desenho do motor de correlação, portões de decisão e
-faseamento. Stack travada: Python + FastAPI, PostgreSQL/PostGIS, ARQ,
-React + TypeScript + MapLibre GL.
+O protótipo é um arquivo único autocontido — 1.520 linhas, ~296 KB, 6 rotas, 18
+eventos de demonstração, geometria Natural Earth 1:50m, nenhum `fetch`, nenhum
+CDN. **Serve como especificação visual executável, não como base de código de
+produção.** Ao construir o produto real, trate-o como referência de design a ser
+reimplementada, não como código a ser estendido.
 
 ## Comandos
 
-Não há toolchain. Para ver o protótipo:
+Back-end (detalhes em [api/README.md](api/README.md)):
 
 ```bash
-python3 -m http.server 8000
+cp .env.example .env && cp api/.env.example api/.env
 ```
 
-Depois abra `http://localhost:8000/clima-global-prototipo-v2.html`. Abrir o
-arquivo direto no navegador também funciona.
+Ajuste a senha nos dois arquivos — precisa ser a mesma — e o e-mail em
+`USER_AGENT`. Depois:
 
-Ao introduzir back-end ou build, adicione os comandos aqui.
+```bash
+docker compose up -d --build
+```
+
+Verificar integridade da coleta (200 = íntegra, 503 = lacuna, fonte silenciosa
+ou partição DEFAULT ocupada):
+
+```bash
+curl -s localhost:8000/saude | python3 -m json.tool
+```
+
+Testes e lint, de dentro de `api/`:
+
+```bash
+pytest
+```
+
+```bash
+ruff check clima && mypy clima
+```
+
+Um teste só: `pytest tests/test_dominio.py::test_interna_e_o_padrao_seguro`
+
+Revisar o SQL de uma migration sem banco: `alembic upgrade head --sql`
+
+Protótipo: `python3 -m http.server 8000`, depois abrir
+`http://localhost:8000/clima-global-prototipo-v2.html`.
+
+### Três armadilhas do back-end
+
+Onde um erro causa dano silencioso em vez de exceção. Detalhes em
+[api/README.md](api/README.md).
+
+1. **RLS é forçada e fail-closed.** Sessão sem `clima.tenant_id` definido não vê
+   linha nenhuma — parece banco vazio, não erro de permissão. Toda leitura e
+   escrita passa por `clima.db.sessao()`.
+2. **Não rode `alembic revision --autogenerate` contra `raw_payloads` ou
+   `payload_bodies`.** Particionamento, RLS e partição DEFAULT não são
+   representáveis nos modelos; o diff tentaria removê-los. `migrations/env.py`
+   filtra essas tabelas, mas não conte com isso.
+3. **Nunca `UPDATE` nem `DELETE` em `raw_payloads`/`payload_bodies`.**
+   `ingest_runs` é a única exceção declarada — é log operacional, aberto antes do
+   fetch e fechado depois, de propósito.
 
 ## Arquitetura do protótipo
 
