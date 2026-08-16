@@ -1,0 +1,65 @@
+name: clima-global
+
+# Orquestração do projeto inteiro. O back-end vive em ./api, o front web em
+# ./web e o app em ./mobile — cada superfície tem sua própria pasta.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-clima}
+      POSTGRES_USER: ${POSTGRES_USER:-clima}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports: ["127.0.0.1:5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clima} -d ${POSTGRES_DB:-clima}"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save "" --appendonly no
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+    restart: unless-stopped
+
+  migrate:
+    build: ./api
+    command: alembic upgrade head
+    env_file: ./api/.env
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+  # O coletor. É o serviço que importa na Fase 0: enquanto ele não estiver de pé,
+  # cada minuto é um minuto de histórico perdido para sempre.
+  worker:
+    build: ./api
+    command: arq clima.workers.arq_app.WorkerSettings
+    env_file: ./api/.env
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    command: uvicorn clima.app:app --host 0.0.0.0 --port 8000
+    env_file: ./api/.env
+    ports: ["8000:8000"]
+    depends_on:
+      db: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+    restart: unless-stopped
+
+volumes:
+  db_data:
