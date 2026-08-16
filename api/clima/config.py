@@ -26,8 +26,18 @@ class Config(BaseSettings):
     )
 
     database_url: str = Field(
-        default="postgresql+psycopg://clima:clima@localhost:5432/clima",
-        description="DSN SQLAlchemy. Usa o driver psycopg3, que serve sync e async.",
+        default="postgresql+psycopg://clima_app:clima@localhost:5432/clima",
+        description=(
+            "DSN da aplicação. Precisa ser um papel NOSUPERUSER/NOBYPASSRLS — "
+            "superusuário ignora RLS e torna o isolamento entre tenants inócuo."
+        ),
+    )
+    database_url_admin: str | None = Field(
+        default=None,
+        description=(
+            "DSN do dono do esquema, usado só por migrations. Se ausente, "
+            "as migrations caem em database_url."
+        ),
     )
     redis_url: str = "redis://localhost:6379"
 
@@ -47,6 +57,10 @@ class Config(BaseSettings):
     @property
     def database_url_async(self) -> str:
         return self.database_url
+
+    @property
+    def database_url_migracao(self) -> str:
+        return self.database_url_admin or self.database_url
 
 
 @lru_cache

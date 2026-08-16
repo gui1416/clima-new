@@ -2,6 +2,10 @@ name: clima-global
 
 # Orquestração do projeto inteiro. O back-end vive em ./api, o front web em
 # ./web e o app em ./mobile — cada superfície tem sua própria pasta.
+#
+# Dois papéis no banco, de propósito: POSTGRES_USER é dono/superusuário e só roda
+# migrations; a aplicação conecta como clima_app, que é NOSUPERUSER/NOBYPASSRLS.
+# Superusuário ignora RLS — ver api/db/init/10-papel-app.sh.
 
 services:
   db:
@@ -10,8 +14,11 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-clima}
       POSTGRES_USER: ${POSTGRES_USER:-clima}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      CLIMA_APP_PASSWORD: ${CLIMA_APP_PASSWORD:?defina CLIMA_APP_PASSWORD}
     volumes:
       - db_data:/var/lib/postgresql/data
+      # Roda uma vez, no initdb. Se o volume já existir, não roda de novo.
+      - ./api/db/init:/docker-entrypoint-initdb.d:ro
     ports: ["127.0.0.1:5432:5432"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clima} -d ${POSTGRES_DB:-clima}"]

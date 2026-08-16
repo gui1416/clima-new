@@ -68,17 +68,24 @@ ou partição DEFAULT ocupada):
 curl -s localhost:8000/saude | python3 -m json.tool
 ```
 
-Testes e lint, de dentro de `api/`:
+Suíte completa em Docker (Postgres+PostGIS em tmpfs, descartável, não toca o
+banco de desenvolvimento):
 
 ```bash
-pytest
+./scripts/testar.sh
+```
+
+Só os unitários, sem infraestrutura, de dentro de `api/`:
+
+```bash
+pytest --ignore=tests/integracao
 ```
 
 ```bash
 ruff check clima && mypy clima
 ```
 
-Um teste só: `pytest tests/test_dominio.py::test_interna_e_o_padrao_seguro`
+Um teste só: `./scripts/testar.sh -k test_papel_app_nao_ignora_rls`
 
 Revisar o SQL de uma migration sem banco: `alembic upgrade head --sql`
 
@@ -90,9 +97,12 @@ Protótipo: `python3 -m http.server 8000`, depois abrir
 Onde um erro causa dano silencioso em vez de exceção. Detalhes em
 [api/README.md](api/README.md).
 
-1. **RLS é forçada e fail-closed.** Sessão sem `clima.tenant_id` definido não vê
-   linha nenhuma — parece banco vazio, não erro de permissão. Toda leitura e
-   escrita passa por `clima.db.sessao()`.
+1. **RLS é forçada e fail-closed, e só funciona com papel não-superusuário.**
+   Sessão sem `clima.tenant_id` definido não vê linha nenhuma — parece banco
+   vazio, não erro de permissão; toda leitura e escrita passa por
+   `clima.db.sessao()`. E a aplicação **precisa** conectar como `clima_app`
+   (`DATABASE_URL`), nunca como o dono: superusuário ignora RLS por completo e o
+   isolamento entre tenants deixa de existir sem nenhum sintoma.
 2. **Não rode `alembic revision --autogenerate` contra `raw_payloads` ou
    `payload_bodies`.** Particionamento, RLS e partição DEFAULT não são
    representáveis nos modelos; o diff tentaria removê-los. `migrations/env.py`

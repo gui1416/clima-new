@@ -1,0 +1,43 @@
+name: clima-global-test
+
+# Suíte de integração, isolada e descartável. Nada aqui toca o banco de
+# desenvolvimento: nome de projeto próprio, banco próprio, dados em tmpfs.
+#
+#   ./scripts/testar.sh
+#
+# Senhas fixas de propósito — este banco vive em memória e morre no fim.
+
+services:
+  db-test:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: clima_test
+      POSTGRES_USER: clima_owner
+      POSTGRES_PASSWORD: teste
+      CLIMA_APP_PASSWORD: teste_app
+    volumes:
+      - ./api/db/init:/docker-entrypoint-initdb.d:ro
+    # Sem volume nomeado: cada execução começa de um banco vazio, e o disco
+    # nunca entra no caminho.
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clima_owner -d clima_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  tests:
+    build:
+      context: ./api
+      target: test
+    environment:
+      # A aplicação conecta como clima_app — é o papel sem BYPASSRLS, e é o que
+      # faz os testes de RLS medirem algo real.
+      DATABASE_URL: postgresql+psycopg://clima_app:teste_app@db-test:5432/clima_test
+      DATABASE_URL_ADMIN: postgresql+psycopg://clima_owner:teste@db-test:5432/clima_test
+      REDIS_URL: redis://inexistente:6379
+      LOG_JSON: "false"
+    depends_on:
+      db-test: { condition: service_healthy }
+    command: ["pytest", "-q"]

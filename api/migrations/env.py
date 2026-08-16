@@ -30,7 +30,7 @@ def include_object(obj, name, type_, reflected, compare_to):  # noqa: ANN001, AN
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=app_config().database_url,
+        url=app_config().database_url_migracao,
         target_metadata=target_metadata,
         literal_binds=True,
         include_object=include_object,
@@ -43,7 +43,8 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     # psycopg3 serve sync e async com o mesmo DSN; migration é sync de propósito.
-    engine = create_engine(app_config().database_url, poolclass=pool.NullPool)
+    # Migrations rodam como dono do esquema, não como o papel da aplicação.
+    engine = create_engine(app_config().database_url_migracao, poolclass=pool.NullPool)
     with engine.connect() as connection:
         context.configure(
             connection=connection,

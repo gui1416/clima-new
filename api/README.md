@@ -50,10 +50,49 @@ Campos técnicos e temporais em inglês (`fetched_at`, `http_status`, `tenant_id
 `atribuicao_exigida`). É deliberado: o domínio é brasileiro, a infraestrutura
 segue a convenção da linguagem.
 
+## Testes
+
+Unitários, sem infraestrutura:
+
+```bash
+pytest --ignore=tests/integracao
+```
+
+Suíte completa em Docker — sobe Postgres+PostGIS em tmpfs, aplica migrations,
+roda tudo e derruba. Não toca o banco de desenvolvimento:
+
+```bash
+./scripts/testar.sh
+```
+
+Filtrar (argumentos vão para o pytest): `./scripts/testar.sh -k rls`
+
+Os testes de `tests/integracao/` conectam como `clima_app`, não como dono — é o
+que faz os testes de RLS medirem comportamento real em vez de nada.
+
 ## Multi-tenancy
 
 `tenant_id` existe desde a migration 001 com RLS **forçada**, porque retrofitar
 multi-tenancy numa base com dados reais é reescrita.
+
+**Dois papéis no banco, e isso não é opcional.** No PostgreSQL, superusuários e
+papéis com `BYPASSRLS` ignoram row-level security por completo, e `FORCE ROW
+LEVEL SECURITY` só sujeita o *dono* da tabela. A imagem oficial do Postgres cria
+`POSTGRES_USER` como superusuário — se a aplicação conectar com ele, toda a RLS
+do projeto é decoração e nada acusa. Então:
+
+| Papel | Uso | DSN |
+|---|---|---|
+| `POSTGRES_USER` (dono) | migrations e administração | `DATABASE_URL_ADMIN` |
+| `clima_app` | a aplicação | `DATABASE_URL` |
+
+`clima_app` é criado no initdb por `db/init/10-papel-app.sh` e recebe privilégios
+mínimos na migration 002. Não tem `DELETE` nem `UPDATE` em
+`raw_payloads`/`payload_bodies`: a imutabilidade do ativo histórico é privilégio
+negado, não só disciplina.
+
+`tests/integracao/test_rls.py::test_papel_app_nao_ignora_rls` falha alto se um
+deploy for configurado com papel superusuário.
 
 Uma ressalva ao princípio, adotada aqui de forma consciente: a ingestão é
 **compartilhada**. Uma coleta do USGS serve todos os clientes; duplicar o fetch
