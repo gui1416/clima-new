@@ -143,9 +143,13 @@ CREATE TABLE sources (
 -- CORRIGIDO na implementação da Fase 0: o corpo saiu daqui para um
 -- armazenamento endereçado por conteúdo. O esboço acoplava corpo e coleta, e o
 -- índice único que pretendia deduplicar incluía a chave de partição
--- (`fetched_at`) — logo, nunca deduplicaria nada. Como o feed horário do USGS é
--- sondado a cada 60 s e quase sempre devolve o mesmo corpo, isso multiplicaria o
--- armazenamento por ~60 sem ganho de informação.
+-- (`fetched_at`) — logo, nunca deduplicaria nada.
+--
+-- MEDIDO depois, contra o feed real: para o USGS a deduplicação quase nunca
+-- dispara, porque o feed embute `metadata.generated` e o corpo muda a cada minuto
+-- mesmo sem evento novo. Custo real ~0,9 GB/ano comprimido, só do USGS. A
+-- separação continua valendo para fontes sem timestamp embutido; normalizar o
+-- corpo antes de hashear, não — levaria formato de fonte para a camada crua.
 CREATE TABLE payload_bodies (          -- um corpo distinto, uma linha
   sha256        bytea PRIMARY KEY CHECK (length(sha256) = 32),
   body          bytea NOT NULL,

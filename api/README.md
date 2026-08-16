@@ -129,11 +129,21 @@ Duas tabelas, não uma:
 - `payload_bodies` — corpo endereçado pelo sha256. Um corpo distinto, uma linha.
 - `raw_payloads` — uma linha por coleta, particionada por mês, apontando para o corpo.
 
-O motivo está no docstring de `clima/models/raw.py`: o feed horário do USGS é
-sondado a cada 60 s e devolve o mesmo corpo na maior parte das vezes. Guardar o
-corpo por fetch multiplicaria o armazenamento sem ganho de informação. Toda
-coleta continua registrada (é o que prova continuidade) e todo corpo distinto
-continua preservado byte a byte (é o que permite replay de parser).
+Toda coleta continua registrada (é o que prova continuidade) e todo corpo
+distinto continua preservado byte a byte (é o que permite replay de parser).
+
+**Ressalva medida em execução real:** para o USGS a deduplicação quase nunca
+dispara. O feed embute `metadata.generated`, um timestamp que muda a cada minuto,
+então dois corpos com as mesmas features byte a byte têm sha256 diferentes — e
+pela mesma razão o `Last-Modified` é bumpado a cada minuto e não há 304 (o USGS
+não manda `ETag`). Custo medido: ~8,2 KB × 1440/dia ≈ 11,8 MB/dia cru, ~2,4 MB/dia
+comprimido, perto de **0,9 GB/ano só do USGS**.
+
+A separação em duas tabelas continua valendo — deduplicar por conteúdo é grátis e
+dispara em fontes sem timestamp embutido — mas não se deve normalizar o corpo
+antes de hashear: isso levaria conhecimento de formato para dentro da camada
+crua, o acoplamento que `fetch`/`parse` separados existem para evitar. Detalhes em
+`clima/models/raw.py`.
 
 Nunca `UPDATE` nem `DELETE` nessas duas tabelas. `ingest_runs` é a exceção
 declarada: é log operacional e a linha é aberta antes do fetch e fechada depois,

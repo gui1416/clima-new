@@ -3,13 +3,26 @@
 Correção em relação ao esboço do plano (§4), que guardava ``body`` dentro de
 ``raw_payloads``: o corpo foi separado num armazenamento endereçado por conteúdo.
 
-A razão é concreta. O feed horário do USGS é consultado a cada 60 s e devolve o
-mesmo corpo na maior parte das vezes; requisição condicional resolve muitos
-casos, mas não todos (a fonte pode não mandar ETag, ou mudar um campo de
-timestamp sem mudar os eventos). Guardar o corpo por fetch multiplicaria o
-armazenamento por ~60 sem ganho de informação. O esboço original tinha um índice
-único em ``(source_id, body_sha256, fetched_at)`` que, por incluir a chave de
-partição, nunca deduplicaria nada.
+O esboço original tinha um índice único em ``(source_id, body_sha256,
+fetched_at)`` que, por incluir a chave de partição, nunca deduplicaria nada.
+
+**Medido em produção, e ao contrário do que eu supus ao projetar isto:** para o
+USGS a deduplicação praticamente nunca dispara. O feed embute
+``metadata.generated`` — um timestamp que muda a cada minuto —, então dois
+corpos com as 11 mesmas features byte a byte têm sha256 diferentes. Pela mesma
+razão o ``Last-Modified`` também é bumpado a cada minuto e a requisição
+condicional não devolve 304 (o USGS não manda ``ETag``).
+
+Consequência real, medida: ~8,2 KB por coleta × 1440 coletas/dia ≈ 11,8 MB/dia
+cru, ~2,4 MB/dia após compressão TOAST (o JSON comprime ~5×) — perto de
+**0,9 GB/ano só do USGS**, quase tudo redundante.
+
+A separação continua valendo, por dois motivos. Deduplicar por conteúdo é grátis
+e vai disparar em fontes que não embutem timestamp (boletins, ativações do
+Copernicus). E 0,9 GB/ano é preço aceitável pelo ativo. O que **não** se deve
+fazer é normalizar o corpo antes de hashear: isso exigiria conhecer o formato de
+cada fonte dentro da camada crua, que é exatamente o acoplamento que ``fetch`` e
+``parse`` separados existem para evitar.
 
 Divisão adotada:
 
