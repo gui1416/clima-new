@@ -26,16 +26,22 @@ meteorológico de uso geral (chuva de terça não é evento; enchente é).
 
 ## Estado atual do repositório
 
-**Estamos na Fase 0** do [plano](docs/plano-de-construcao.md): coleta de
-`payload_raw` do USGS. Não existe ainda parser, motor de correlação nem API de
-produto — nesta ordem, nas Fases 1, 2 e 3.
+**Fases 0, 1 e 3 feitas** ([plano](docs/plano-de-construcao.md)): o USGS é
+coletado a cada 60 s, analisado para `source_records` append-only e servido em
+`/api/eventos`; a interface consome isso. **O motor de correlação — Fase 2, o
+diferencial — não existe.** Toda resposta de lista carrega `deduplicado: false`, e
+`fontes_confirmando` vale 1 para tudo. Não remova esses avisos antes do motor
+existir: eles são o que impede o produto de afirmar consolidação que não houve.
+
+A API de produto fica sob **`/api`**. Sem o prefixo ela colide com as rotas do SPA
+(`/eventos`, `/fontes`) e o navegador recebe JSON em vez da aplicação.
 
 Uma pasta por superfície, sempre. Nada de back-end fora de `/api`.
 
 | Caminho | O que é |
 |---|---|
 | [api/](api/) | Back-end inteiro: FastAPI, conectores, ingestão, workers, migrations |
-| [web/](web/) | Front-end web: React + TS + Vite + MapLibre GL. Shell navegável sobre dados de demonstração |
+| [web/](web/) | Front-end web: React + TS + Vite + MapLibre GL. Mapa, painéis, eventos e fontes sobre dado real |
 | [mobile/](mobile/) | App móvel. Fora da v1; o lugar está reservado |
 | [docs/](docs/) | Plano de construção |
 | [clima-global-prototipo-v2.html](clima-global-prototipo-v2.html) | Protótipo, congelado |
@@ -61,11 +67,15 @@ Ajuste a senha nos dois arquivos — precisa ser a mesma — e o e-mail em
 docker compose up -d --build
 ```
 
-Verificar integridade da coleta (200 = íntegra, 503 = lacuna, fonte silenciosa
-ou partição DEFAULT ocupada):
+Verificar integridade da coleta (200 = íntegra, 503 = lacuna, fonte silenciosa,
+partição DEFAULT ocupada ou fila de análise parada):
 
 ```bash
 curl -s localhost:8000/saude | python3 -m json.tool
+```
+
+```bash
+curl -s "localhost:8000/api/eventos?horas=24" | python3 -m json.tool
 ```
 
 Suíte completa em Docker (Postgres+PostGIS em tmpfs, descartável, não toca o
@@ -121,9 +131,13 @@ Onde um erro causa dano silencioso em vez de exceção. Detalhes em
    `payload_bodies`.** Particionamento, RLS e partição DEFAULT não são
    representáveis nos modelos; o diff tentaria removê-los. `migrations/env.py`
    filtra essas tabelas, mas não conte com isso.
-3. **Nunca `UPDATE` nem `DELETE` em `raw_payloads`/`payload_bodies`.**
-   `ingest_runs` é a única exceção declarada — é log operacional, aberto antes do
-   fetch e fechado depois, de propósito.
+3. **Nunca `UPDATE` nem `DELETE` em `raw_payloads`/`payload_bodies`/`source_records`.**
+   `ingest_runs` é exceção declarada (log operacional, aberto antes do fetch e
+   fechado depois) e `parse_runs` também — apagar linha dela é o mecanismo de
+   replay do parser.
+4. **`analisar()` nunca toca a rede.** O parser lê de `payload_bodies` e é função
+   pura. É o que faz bug de parser virar replay em vez de perda de dado, e o que
+   permite testá-lo contra payload real gravado.
 
 ## Arquitetura do protótipo
 

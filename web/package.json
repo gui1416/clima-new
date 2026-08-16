@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dados": "node scripts/geometria-do-prototipo.mjs && node scripts/eventos-do-prototipo.mjs",
+    "dados": "node scripts/geometria-do-prototipo.mjs",
     "predev": "npm run dados",
     "dev": "vite",
     "prebuild": "npm run dados",

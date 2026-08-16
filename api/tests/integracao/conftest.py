@@ -19,21 +19,24 @@ histórico é privilégio negado, não só disciplina.
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import uuid
 from collections.abc import AsyncIterator, Iterator
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from clima.config import config
+from clima.config import TENANT_SISTEMA, config
 
 API_DIR = Path(__file__).resolve().parents[2]
 
-# Tabelas que cada teste começa vazias. Uma única instrução resolve as FKs entre elas.
-MUTAVEIS = "raw_payloads, payload_bodies, ingest_runs"
+# Tabelas que cada teste começa vazias. Numa única instrução, porque source_records
+# e parse_runs referenciam raw_payloads — truncar só o pai falharia por FK.
+MUTAVEIS = "source_records, parse_runs, raw_payloads, payload_bodies, ingest_runs"
 
 
 @pytest.fixture(scope="session")
@@ -79,6 +82,52 @@ async def tenant_a(dono: AsyncEngine) -> uuid.UUID:
 @pytest.fixture
 async def tenant_b(dono: AsyncEngine) -> uuid.UUID:
     return await _criar_tenant(dono, "Tenant B")
+
+
+@pytest.fixture
+def semear(dono: AsyncEngine):  # noqa: ANN201
+    """Grava um payload bruto como a coleta faria, sem passar pela rede.
+
+    Fica no conftest, e não num módulo de teste, porque `tests/` não é pacote —
+    importar entre arquivos de teste quebraria a coleta dentro do contêiner.
+    """
+
+    async def _semear(corpo: bytes, quando: datetime | None = None, fonte: str = "usgs") -> int:
+        instante = quando or datetime.now(UTC)
+        sha = hashlib.sha256(corpo).digest()
+        async with dono.begin() as c:
+            run_id = (
+                await c.execute(
+                    text(
+                        "INSERT INTO ingest_runs (tenant_id, source_id, resultado, finished_at) "
+                        "VALUES (:t, :f, 'ok', now()) RETURNING id"
+                    ),
+                    {"t": TENANT_SISTEMA, "f": fonte},
+                )
+            ).scalar_one()
+            await c.execute(
+                text(
+                    "INSERT INTO payload_bodies (sha256, body, bytes_total) "
+                    "VALUES (:s, :b, :n) ON CONFLICT DO NOTHING"
+                ),
+                {"s": sha, "b": corpo, "n": len(corpo)},
+            )
+            return (
+                await c.execute(
+                    text(
+                        """
+                        INSERT INTO raw_payloads
+                          (fetched_at, tenant_id, source_id, ingest_run_id, url,
+                           http_status, body_sha256)
+                        VALUES (:q, :t, :f, :r, 'https://exemplo.test/f', 200, :s)
+                        RETURNING id
+                        """
+                    ),
+                    {"q": instante, "t": TENANT_SISTEMA, "f": fonte, "r": run_id, "s": sha},
+                )
+            ).scalar_one()
+
+    return _semear
 
 
 async def _criar_tenant(eng: AsyncEngine, nome: str) -> uuid.UUID:

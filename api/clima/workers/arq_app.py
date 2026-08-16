@@ -17,6 +17,7 @@ from arq.connections import RedisSettings
 from clima.config import config
 from clima.db import encerrar
 from clima.ingest import coletar_ativas, garantir_particoes, verificar
+from clima.ingest.parser import analisar_pendentes
 from clima.logs import configurar, log
 
 _log = log("worker")
@@ -24,6 +25,10 @@ _log = log("worker")
 
 async def tarefa_coletar(ctx: dict[str, Any]) -> dict[str, str]:
     return await coletar_ativas()
+
+
+async def tarefa_analisar(ctx: dict[str, Any]) -> dict[str, int]:
+    return await analisar_pendentes()
 
 
 async def tarefa_particoes(ctx: dict[str, Any]) -> list[str]:
@@ -58,6 +63,9 @@ class WorkerSettings:
     cron_jobs = [
         # second=0 com minute em aberto: uma vez por minuto.
         cron(tarefa_coletar, second=0, run_at_startup=True, max_tries=1),
+        # 20 s depois da coleta: o payload do minuto já está gravado quando o
+        # parser roda, então o atraso entre observar e publicar fica abaixo de 1 min.
+        cron(tarefa_analisar, second=20, run_at_startup=True, max_tries=1),
         cron(tarefa_particoes, hour=3, minute=10, run_at_startup=True),
         cron(tarefa_continuidade, minute=set(range(0, 60, 5)), second=30),
     ]

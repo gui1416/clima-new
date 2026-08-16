@@ -1,9 +1,10 @@
-/** Tipos da camada de dados.
+/** Tipos da API de produto.
  *
- * Os nomes de campo vêm do protótipo, porque os dados de demonstração são
- * extraídos dele mecanicamente. **Este não é o contrato final**: a API de produto
- * (Fase 3) define o formato real, e aí este arquivo é reescrito a partir do
- * schema dela, não o contrário.
+ * Espelham `api/clima/api/esquemas.py`. Os dados de demonstração do protótipo
+ * saíram: o back-end agora entrega sismos reais do USGS.
+ *
+ * `magnitude` e `metricaRotulo` acompanham `severidade` em todo lugar, de
+ * propósito — a faixa nunca aparece sem a grandeza que a originou.
  */
 
 export type Severidade = "critical" | "high" | "moderate";
@@ -16,42 +17,72 @@ export const ROTULO_SEVERIDADE: Record<Severidade, string> = {
   moderate: "Moderado",
 };
 
-export interface Evento {
+export interface EventoResumo {
   id: string;
-  title: string;
-  place: string;
-  country: string;
-  /** ISO 3166-1 numérico como string ('076' Brasil). Liga evento a país. */
-  countryId: string;
-  region: string;
-  type: string;
-  severity: Severidade;
-  severityLabel: string;
-  time: string;
+  titulo: string;
+  tipo: string;
+  lugar: string | null;
   lat: number;
   lon: number;
-  people: string;
-  exposure: number;
-  /** Quantas fontes independentes confirmam. É a métrica do diferencial. */
-  sources: number;
-  confidence: number;
-  /** Métrica física — nunca deve aparecer sem ela ao lado da severidade. */
-  metric: string;
-  metricLabel: string;
-  summary: string;
-  sourceNames: string[];
-  updates: string[];
-  times: string[];
+  ocorrido_em: string;
+  atualizado_em: string;
+  severidade: Severidade;
+  magnitude: number | null;
+  metrica_rotulo: string;
+  profundidade_km: number | null;
+  /** Fontes independentes que confirmam. Vale 1 até o motor de correlação existir. */
+  fontes_confirmando: number;
+  revisoes: number;
+  status: string;
 }
 
-export interface ArquivoEventosDemo {
-  demo: true;
-  origem: string;
-  geradoEm: string;
-  eventos: Evento[];
-}
-
-export interface PropriedadesPais {
-  iso: string;
+export interface Procedencia {
+  fonte: string;
   nome: string;
+  source_event_id: string;
+  observado_em: string;
+  revisado_em: string;
+  revisoes: number;
+  status: string;
+  magnitude: number | null;
+  profundidade_km: number | null;
+  lugar: string | null;
+  atribuicao: string | null;
+  /** Fonte com licença restrita: conta, mas não entrega conteúdo (portão G4). */
+  conteudo_restrito: boolean;
+}
+
+export interface EventoDetalhe extends EventoResumo {
+  metricas: Record<string, unknown>;
+  xrefs: Record<string, unknown>;
+  procedencia: Procedencia[];
+}
+
+export interface Pagina {
+  total: number;
+  itens: EventoResumo[];
+  deduplicado: boolean;
+  aviso: string | null;
+}
+
+export interface Estatisticas {
+  eventos_total: number;
+  por_severidade: Partial<Record<Severidade, number>>;
+  por_status: Record<string, number>;
+  magnitude_maxima: number | null;
+  ultimo_evento_em: string | null;
+  janela_horas: number;
+  fontes_ativas: number;
+  deduplicado: boolean;
+}
+
+export interface SaudeFonte {
+  source_id: string;
+  nome: string;
+  ativa: boolean;
+  redistribuicao: "livre" | "atribuicao" | "interna";
+  intervalo_poll_seg: number;
+  ultima_coleta_ok: string | null;
+  ultimo_erro_em: string | null;
+  erros_1h: number;
 }

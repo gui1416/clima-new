@@ -7,11 +7,10 @@
  * Verifica, em ordem de gravidade:
  *   1. nenhum erro de console e nenhuma exceção de página;
  *   2. o canvas WebGL do MapLibre existe e tem área;
- *   3. os 18 marcadores estão no DOM (prova que o evento `load` chegou);
- *   4. **os marcadores estão dentro do canvas** — presença no DOM não é
- *      visibilidade. Um `maxBounds` com longitude fora de ±180 já colocou os 18
- *      marcadores em posições de -4308px a 2561px, todos fora da tela, com o DOM
- *      dizendo que estava tudo certo;
+ *   3. há marcador no DOM (prova que o `load` chegou e a API respondeu);
+ *   4. **os marcadores estão na posição que o mapa projeta** — presença no DOM
+ *      não é visibilidade nem posição certa. Um `maxBounds` inválido já jogou todos
+ *      fora da tela, e um `position: relative` já deslocou cada um por (n−1)×14px;
  *   5. o canvas não está em branco, medido pelo tamanho do PNG: uma imagem de cor
  *      única comprime para poucos KB. (Ler `readPixels` não serve — o MapLibre usa
  *      `preserveDrawingBuffer: false` e o buffer está vazio fora do frame.)
@@ -59,10 +58,13 @@ if (TEMA === "light") {
 // O `load` do MapLibre é assíncrono; os marcadores só existem depois dele.
 let marcadores = 0;
 try {
-  await pagina.waitForSelector(".marcador", { timeout: 15000 });
+  await pagina.waitForSelector(".marcador", { timeout: 20000 });
   marcadores = await pagina.locator(".marcador").count();
 } catch {
-  problemas.push("nenhum marcador apareceu em 15 s — o evento `load` do mapa não chegou");
+  problemas.push(
+    "nenhum marcador apareceu em 20 s — o mapa não carregou, ou a API não devolveu sismo " +
+      "na janela de 24 h (verifique se o back-end está no ar)",
+  );
 }
 
 const painelDeErro = await pagina.locator(".vazio h2").count();
@@ -92,8 +94,10 @@ const posicoes = await pagina.evaluate(async (tol) => {
 
   const c = document.querySelector(".mapa-canvas canvas");
   const r = c.getBoundingClientRect();
-  const evts = (await (await fetch("/dados/eventos-demo.json")).json()).eventos;
-  const porRotulo = new Map(evts.map((e) => [`${e.title} — ${e.place}`, e]));
+  // Compara contra a MESMA fonte que a aplicação usa: a API.
+  const evts = (await (await fetch("/api/eventos?horas=24&magnitude_minima=2.5&limite=500")).json())
+    .itens;
+  const porRotulo = new Map(evts.map((e) => [`${e.titulo} — ${e.lugar ?? ""}`.trim(), e]));
 
   let dentro = 0;
   const desviados = [];
@@ -115,7 +119,7 @@ const posicoes = await pagina.evaluate(async (tol) => {
     const dx = Math.abs(cx - r.x - p.x);
     const dy = Math.abs(cy - r.y - p.y);
     if (dx > tol || dy > tol) {
-      desviados.push({ lugar: e.place, dx: Math.round(dx), dy: Math.round(dy) });
+      desviados.push({ lugar: e.lugar, dx: Math.round(dx), dy: Math.round(dy) });
     }
   }
   return { dentro, desviados, rotulosGenericos };
@@ -150,13 +154,15 @@ await pagina.screenshot({ path: SAIDA });
 await navegador.close();
 
 console.log(`tema:       ${TEMA}`);
-console.log(`marcadores: ${marcadores} no DOM, ${dentro} dentro do canvas (esperado 18 / 18)`);
+console.log(`marcadores: ${marcadores} no DOM, ${dentro} dentro do canvas`);
 console.log(`canvas:     ${canvas ? `${canvas.largura}x${canvas.altura}` : "AUSENTE"}`);
 console.log(`pintura:    PNG do mapa com ${kbMapa.toFixed(1)} KB`);
 console.log(`captura:    ${SAIDA}`);
 
-if (marcadores !== 18) problemas.push(`marcadores no DOM: ${marcadores}, esperado 18`);
-if (dentro !== 18) problemas.push(`marcadores visíveis: ${dentro} de ${marcadores} — fora do canvas`);
+// A contagem vem do mundo real, então o que se exige é ">0 e todos no lugar".
+if (marcadores === 0) problemas.push("nenhum marcador renderizado");
+if (marcadores && dentro !== marcadores)
+  problemas.push(`marcadores visíveis: ${dentro} de ${marcadores} — fora do canvas`);
 
 if (problemas.length) {
   console.log(`\nFALHOU (${problemas.length}):`);

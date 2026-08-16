@@ -6,7 +6,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // A API operacional da Fase 0. A API de produto entra na Fase 3.
+      // Back-end em docker compose. Proxy em vez de CORS: em produção os dois
+      // ficam atrás do mesmo host, e o desenvolvimento imita isso.
+      // Prefixo /api porque as rotas do SPA (/eventos, /fontes) casariam com o
+      // proxy antes do fallback e o navegador receberia JSON em vez da aplicação.
+      "/api": "http://localhost:8000",
       "/saude": "http://localhost:8000",
     },
   },

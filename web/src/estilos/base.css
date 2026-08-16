@@ -480,3 +480,232 @@ a {
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+
+/* ── painéis e tabelas das telas de dado ────────────────────────────────── */
+
+.cabecalho-pagina {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.atualizado {
+  margin-left: auto;
+  color: var(--muted-2);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chips {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+
+.chips button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chips button[aria-pressed="true"] {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.campo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.campo input {
+  width: 74px;
+  padding: 7px 9px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.painel-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-bottom: 18px;
+}
+
+.painel {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 15px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.painel span {
+  color: var(--muted-2);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+}
+
+.painel strong {
+  font-size: 25px;
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.painel small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.duas-colunas {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  margin-bottom: 18px;
+}
+
+.cartao {
+  padding: 17px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.cartao h2 {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 620;
+}
+
+.barra-linha {
+  display: grid;
+  align-items: center;
+  gap: 11px;
+  grid-template-columns: 150px 1fr 42px;
+  margin-bottom: 9px;
+  font-size: 12px;
+}
+
+.barra-linha span {
+  color: var(--muted);
+}
+
+.barra-linha b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.barra {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.barra i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--muted-2);
+}
+
+.barra i.critical {
+  background: var(--critical);
+}
+.barra i.high {
+  background: var(--high);
+}
+.barra i.moderate {
+  background: var(--moderate);
+}
+
+.nota {
+  margin: 12px 0 0;
+  color: var(--muted-2);
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.aviso-erro {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--high);
+  border-radius: var(--r-sm);
+  color: var(--high);
+  font-size: 12px;
+}
+
+.alerta-inline {
+  margin-left: 8px;
+  color: var(--high);
+  font-weight: 600;
+}
+
+.ponto.inativo {
+  background: var(--muted-2);
+}
+
+.restrito {
+  color: var(--high);
+}
+
+/* ── procedência no cartão do mapa ──────────────────────────────────────── */
+
+.proc {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.proc-titulo {
+  margin-bottom: 9px;
+  color: var(--muted-2);
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+}
+
+.proc-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+  font-size: 11px;
+}
+
+.proc-linha strong {
+  font-weight: 600;
+}
+
+.proc-linha span {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.proc-nota {
+  margin: 10px 0 0;
+  color: var(--muted-2);
+  font-size: 10px;
+  line-height: 1.5;
+}

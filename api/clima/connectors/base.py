@@ -13,7 +13,9 @@ parse durante o fetch quebra essa garantia e não deve ser aceito em revisão.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Protocol, runtime_checkable
 
 import httpx
@@ -53,12 +55,43 @@ class Resposta:
         return self.http_status == 304
 
 
+@dataclass(frozen=True, slots=True)
+class Observacao:
+    """Uma observação normalizada, saída do parser e ainda sem tocar o banco.
+
+    ``xrefs`` é o que torna a correlação da Fase 2 possível de forma determinística:
+    identificadores que a própria fonte declara para o mesmo fenômeno.
+    """
+
+    source_event_id: str
+    observed_at: datetime
+    source_updated_at: datetime
+    event_type: str
+    lat: float
+    lon: float
+    status: str
+    lugar: str | None = None
+    magnitude: float | None = None
+    profundidade_km: float | None = None
+    metrics: dict[str, object] = field(default_factory=dict)
+    xrefs: dict[str, object] = field(default_factory=dict)
+
+
 @runtime_checkable
 class Conector(Protocol):
     id: str
 
     async def coletar(self, cliente: httpx.AsyncClient, anteriores: Validadores) -> Resposta:
         """Uma requisição à fonte. Não interpreta o corpo, não grava nada."""
+        ...
+
+    def analisar(self, corpo: bytes) -> Sequence[Observacao]:
+        """Bytes crus → observações. Puro: sem rede, sem banco, sem relógio.
+
+        Recebe sempre o corpo lido de ``payload_bodies``, nunca uma resposta HTTP
+        fresca. É o que faz bug de parser virar replay em vez de perda de dado.
+        Ser puro também é o que permite testá-lo contra um payload real gravado.
+        """
         ...
 
 

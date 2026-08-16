@@ -7,8 +7,8 @@ import {
   TelaEventos,
   TelaFontes,
   TelaMapa,
-  TelaProcedencia,
   TelaRelatorios,
+  TelaVisaoGeral,
 } from "./rotas";
 import { alternarTema, temaAtual } from "./tema";
 
@@ -48,11 +48,11 @@ export function App() {
           <h1>{rota?.rotulo ?? "Clima Global"}</h1>
           <span className="espacador" />
 
-          {/* Enquanto não há ingestão em tempo real na interface, o rótulo diz
-              "demonstração" em vez de "ao vivo". */}
+          {/* Dado real do USGS. Não diz "ao vivo" porque a cadência é de 60 s e a
+              fonte é uma só — o rótulo descreve o que existe. */}
           <span className="pilula">
-            <i className="ponto high" />
-            dados de demonstração
+            <i className="ponto" />
+            USGS · 1 fonte · sem deduplicação
           </span>
 
           <button
@@ -67,14 +67,14 @@ export function App() {
 
         <main className={rota?.telaCheia ? "conteudo sem-rolagem" : "conteudo"}>
           <Routes>
-            <Route path="/" element={<Navigate to="/mapa" replace />} />
+            <Route path="/" element={<Navigate to="/visao-geral" replace />} />
+            <Route path="/visao-geral" element={<TelaVisaoGeral />} />
             <Route path="/mapa" element={<TelaMapa />} />
             <Route path="/eventos" element={<TelaEventos />} />
-            <Route path="/procedencia" element={<TelaProcedencia />} />
             <Route path="/fontes" element={<TelaFontes />} />
             <Route path="/alertas" element={<TelaAlertas />} />
             <Route path="/relatorios" element={<TelaRelatorios />} />
-            <Route path="*" element={<Navigate to="/mapa" replace />} />
+            <Route path="*" element={<Navigate to="/visao-geral" replace />} />
           </Routes>
         </main>
       </div>
