@@ -289,3 +289,18 @@ def test_chave_do_cluster_e_estavel_na_ordem_dos_membros() -> None:
 def test_cluster_vazio_e_erro() -> None:
     with pytest.raises(ValueError, match="vazio"):
         sintetizar([])
+
+
+def test_chave_desconhecida_em_xrefs_nao_vira_identificador() -> None:
+    """Allowlist, não blocklist. Uma fonte nova que traga `{'operador': 'X'}` não pode
+    fazer todos os eventos dela colapsarem num só — e uma blocklist deixaria passar.
+    """
+    a = reg(1, "nova", 0, 0, xrefs={"operador": "X", "nova": "n1"})
+    b = reg(2, "nova", 40, 40, xrefs={"operador": "X", "nova": "n2"})
+    assert not identificadores(a) & identificadores(b)
+
+
+def test_agencia_do_emsc_nao_vira_identificador() -> None:
+    a = reg(1, "emsc", 0, 0, xrefs={"emsc": "e1", "agencia": "BMKG"})
+    b = reg(2, "emsc", 40, 40, xrefs={"emsc": "e2", "agencia": "BMKG"})
+    assert not identificadores(a) & identificadores(b)

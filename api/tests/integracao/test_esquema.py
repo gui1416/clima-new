@@ -100,12 +100,14 @@ async def test_fontes_bloqueadas_nascem_internas(dono: AsyncEngine) -> None:
     assert linhas["usgs"] == "livre"
 
 
-async def test_apenas_usgs_ativa_na_fase_0(dono: AsyncEngine) -> None:
+async def test_fontes_ativas_sao_as_duas_de_sismo(dono: AsyncEngine) -> None:
+    """USGS e EMSC. Duas fontes é o mínimo para o motor de correlação ter trabalho —
+    e é a decisão vinculante do CLAUDE.md para a v1."""
     async with dono.connect() as c:
         ativas = set(
             (await c.execute(text("SELECT id FROM sources WHERE ativa"))).scalars()
         )
-    assert ativas == {"usgs"}
+    assert ativas == {"usgs", "emsc"}
 
 
 async def test_coleta_do_mes_vai_para_a_particao_do_mes() -> None:

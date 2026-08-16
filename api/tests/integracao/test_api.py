@@ -122,7 +122,7 @@ async def test_estatisticas(cliente: httpx.AsyncClient, com_dados: None) -> None
     assert sum(e["por_severidade"].values()) == 11
     assert sum(e["por_status"].values()) == 11
     assert e["magnitude_maxima"] == 2.78
-    assert e["fontes_ativas"] == 1
+    assert e["fontes_ativas"] == 2, "USGS e EMSC"
     assert e["deduplicado"] is False
 
 

@@ -78,6 +78,41 @@ async def _raw(dono: AsyncEngine, semear) -> tuple[int, datetime]:  # noqa: ANN0
     return raw_id, fetched
 
 
+async def test_duas_fontes_reais_deduplicam(dono: AsyncEngine, semear) -> None:  # noqa: ANN001
+    """O caso que o produto existe para resolver, com payload real das duas fontes.
+
+    Sem xref entre USGS e EMSC, então quem decide é o modelo probabilístico. Não se
+    exige que TODOS os pares coincidentes sejam unidos — os dois payloads são de
+    janelas diferentes e a sobreposição é parcial. Exige-se que a correlação ocorra e
+    que nada seja fundido além do que o diâmetro do tipo permite.
+    """
+    from pathlib import Path as _P
+
+    emsc = _P(__file__).parents[1] / "fixtures" / "emsc-recentes.json"
+    await semear(FIXTURE.read_bytes(), fonte="usgs")
+    await semear(emsc.read_bytes(), fonte="emsc")
+    await analisar_pendentes()
+
+    rel = await correlacionar(horas=24 * 365 * 10)
+
+    assert rel.registros == 66, "11 do USGS + 55 do EMSC"
+    assert rel.candidatos > 0, "o blocking precisa achar pares entre as fontes"
+    assert rel.por_xref == 0, "não há identificador comum entre USGS e EMSC"
+    assert rel.eventos < rel.registros or rel.unidos == 0
+
+    async with dono.connect() as c:
+        multi = (
+            await c.execute(
+                text("SELECT count(*) FROM v_eventos_canonicos WHERE source_count > 1")
+            )
+        ).scalar_one()
+        maior = (
+            await c.execute(text("SELECT max(source_count) FROM v_eventos_canonicos"))
+        ).scalar_one()
+    assert maior <= 2, "com duas fontes, nenhum evento pode ter mais de duas"
+    assert multi == rel.eventos_multifonte
+
+
 async def test_uma_fonte_gera_um_evento_por_registro(dono: AsyncEngine, semear) -> None:  # noqa: ANN001
     """Com uma fonte só não há nada para deduplicar, e o motor não pode inventar."""
     await semear(FIXTURE.read_bytes())

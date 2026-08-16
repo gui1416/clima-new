@@ -58,17 +58,27 @@ class Relatorio:
         return self.__dict__.copy()
 
 
-def identificadores(r: Registro) -> set[str]:
-    """Todos os identificadores que este registro declara para o fenômeno.
+# Chaves de `xrefs` que contêm identificador de EVENTO. Allowlist, não blocklist, e
+# a diferença é de segurança: uma blocklist falha **aberto** — chave nova de uma fonte
+# nova entra como identificador e funde eventos distintos em massa. Uma allowlist
+# falha **fechado**: chave desconhecida é ignorada, custando recall e nunca inventando
+# merge. Dado que falso merge esconde evento real, é o viés certo.
+#
+# O que NÃO entra, e por quê: `contribuintes` guarda siglas de rede do USGS ('nc',
+# 'ci') e `agencia` guarda a agência do EMSC ('BMKG', 'AFAD'). São *quem reportou*,
+# não *o que foi reportado* — tratá-los como identificador transformaria todo sismo da
+# mesma rede num único evento.
+CHAVES_IDENTIFICADOR = frozenset({"usgs", "emsc", "gdacs", "redes", "glide", "ids"})
 
-    Interseção não vazia entre dois registros = mesmo evento, com certeza. Inclui o
-    próprio id da fonte e os das redes contribuintes.
+
+def identificadores(r: Registro) -> set[str]:
+    """Identificadores de evento que este registro declara.
+
+    Interseção não vazia entre dois registros = mesmo evento, com certeza.
     """
     ids = {f"{r.source_id}:{r.source_event_id}"}
-    x = r.xrefs or {}
-    for chave, valor in x.items():
-        if chave == "contribuintes":
-            # Nomes de rede ('nc', 'ci') não identificam evento — só quem reportou.
+    for chave, valor in (r.xrefs or {}).items():
+        if chave not in CHAVES_IDENTIFICADOR:
             continue
         if isinstance(valor, str):
             ids.add(valor)

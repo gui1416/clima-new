@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 from clima.connectors.base import Conector
+from clima.connectors.emsc import ConectorEMSC
 from clima.connectors.usgs import ConectorUSGS
 
-# Fase 0 coleta uma fonte só. As demais estão registradas em `sources` com
-# ativa=false — o registro é honesto sobre o que existe e o que ainda não.
+# Duas fontes de sismo, que é o mínimo para o motor de correlação ter trabalho.
+# As demais estão registradas em `sources` com ativa=false — o registro é honesto
+# sobre o que existe e o que ainda não.
 CONECTORES: dict[str, Conector] = {
     c.id: c
-    for c in (ConectorUSGS(),)
+    for c in (ConectorUSGS(), ConectorEMSC())
 }
 
 

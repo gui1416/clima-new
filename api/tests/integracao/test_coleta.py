@@ -185,8 +185,9 @@ async def test_coleta_alimenta_a_saude_da_fonte(dono: AsyncEngine, instalar) -> 
     assert ultima_ok is not None, "coleta bem-sucedida não apareceu em v_saude_fontes"
     assert erros == 0
 
-    # Nenhuma fonte deve constar como silenciosa logo após uma coleta boa.
-    assert [s.source_id for s in await silenciosas()] == []
+    # A fonte que acabou de coletar não pode constar como silenciosa. O EMSC
+    # aparece, e corretamente: neste banco de teste ele nunca coletou.
+    assert "usgs" not in [s.source_id for s in await silenciosas()]
 
 
 async def test_lacuna_e_detectada(dono: AsyncEngine) -> None:

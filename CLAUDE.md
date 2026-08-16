@@ -30,16 +30,19 @@ meteorológico de uso geral (chuva de terça não é evento; enchente é).
 coletado a cada 60 s, analisado para `source_records` append-only, correlacionado em
 `canonical_events`, e servido em `/api/eventos`.
 
-**Mas o motor de correlação não tem o que deduplicar: existe uma fonte só.** O feed
-do USGS entrega eventos já mesclados, então hoje cada `source_record` vira um evento
-canônico de uma fonte. O motor está exercitado por testes (inclusive recusando dois
-sismos reais a 0,5 km e 62 s de distância), e o portão **G2 não está atendido** —
-exige positivo real de uma segunda fonte. `api/eval/avaliar_g2.py` mede e explica
-por quê.
+Duas fontes de sismo ativas: **USGS** e **EMSC**. Entre elas não há identificador
+comum, então a correlação é probabilística — o caminho determinístico do §5.2 não
+dispara aqui.
 
-Toda resposta de lista carrega `deduplicado: false` e `fontes_confirmando: 1`. Não
-remova esses avisos antes de haver segunda fonte: são o que impede o produto de
-afirmar consolidação que não houve.
+**O portão G2 continua não atendido, e o motivo agora é de dados, não de código.**
+Medido em execução real: os dois catálogos se sobrepõem apenas na faixa global de
+M ≳ 4,5. O USGS reporta eventos pequenos só em território americano, e o EMSC só nas
+regiões de suas agências contribuintes — então um par cross-fonte aparece poucas
+vezes ao dia, não por hora. Acumular positivos reais exige **dias de coleta**.
+`api/eval/avaliar_g2.py` mede e se recusa a declarar aprovação com amostra pequena.
+
+Toda resposta de lista carrega `deduplicado: false`. Só troque isso quando houver
+medição de G2 com positivo real — não quando o motor "parecer funcionar".
 
 A API de produto fica sob **`/api`**. Sem o prefixo ela colide com as rotas do SPA
 (`/eventos`, `/fontes`) e o navegador recebe JSON em vez da aplicação.
