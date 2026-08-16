@@ -6,6 +6,9 @@ import { aoTrocarTema } from "../tema";
 import { ROTULO_SEVERIDADE, SEVERIDADES, type Evento, type Severidade } from "../tipos";
 import { estiloDoMapa } from "./estilo";
 
+const rotuloDoMarcador = (e: Evento): string =>
+  `${e.title}, ${e.place}, ${e.country}. ${e.severityLabel}. ${e.metric} ${e.metricLabel}.`;
+
 /** Marcadores são elementos DOM, não camada de símbolo: evita servidor de glifos
  *  e deixa a pulsação e o foco de teclado no CSS, como no protótipo. */
 function elementoDoMarcador(e: Evento, selecionado: boolean): HTMLButtonElement {
@@ -13,10 +16,7 @@ function elementoDoMarcador(e: Evento, selecionado: boolean): HTMLButtonElement 
   b.className = `marcador ${e.severity}`;
   b.type = "button";
   b.setAttribute("aria-pressed", String(selecionado));
-  b.setAttribute(
-    "aria-label",
-    `${e.title}, ${e.place}, ${e.country}. ${e.severityLabel}. ${e.metric} ${e.metricLabel}.`,
-  );
+  b.setAttribute("aria-label", rotuloDoMarcador(e));
   b.title = `${e.title} — ${e.place}`;
   return b;
 }
@@ -60,16 +60,53 @@ export function MapaGlobal() {
           minZoom: 0.6,
           maxZoom: 12,
           attributionControl: false,
-          // A geometria para em -57° de latitude (a Antártida não está no dado do
-          // protótipo); deixar rolar além disso mostraria oceano vazio.
-          maxBounds: [
-            [-200, -62],
-            [200, 86],
-          ],
+          // NÃO usar `maxBounds` aqui. A tentativa de limitar a rolagem com
+          // [[-200,-62],[200,86]] derrubou o enquadramento inteiro: o MapLibre
+          // envolve longitude fora de ±180, então -200/200 viraram 160/-160 — uma
+          // faixa de 40° cruzando o antimeridiano — e ele aproximou para caber
+          // nela. Resultado: zoom efetivo ~3,8 em vez de 1,1, com os 18
+          // marcadores existindo no DOM e nenhum dentro do canvas.
+          //
+          // Mesmo com longitude válida, `maxBounds` é frágil aqui: a faixa de
+          // latitude do dado ocupa ~0,66 da altura do mundo em Mercator, então em
+          // viewport alto o MapLibre aproximaria para caber. Enquadrar por
+          // `fitBounds` expressa a intenção real — "mostre o dado" — sem
+          // restringir a navegação.
         });
         m.addControl(new NavigationControl({ showCompass: false }), "top-right");
-        m.on("load", () => vivo && setPronto(true));
+
+        // Sem isto, falha de estilo é invisível: o MapLibre valida o estilo de
+        // forma assíncrona e emite 'error' em vez de lançar, então o `load` nunca
+        // chega, nenhum marcador é criado e a tela fica com a legenda montada
+        // sobre um painel vazio — sem mensagem alguma. Foi assim que um
+        // `color-mix()` num paint derrubou o mapa inteiro em silêncio.
+        // Como não há fonte de tiles aqui, todo erro deste mapa é real.
+        m.on("error", (ev) => {
+          if (vivo) setErro(ev.error?.message ?? "erro desconhecido do MapLibre");
+        });
+
+        const mapaCriado = m;
+        mapaCriado.on("load", () => {
+          if (!vivo) return;
+          // Enquadra a extensão real do dado, em vez de confiar num zoom fixo que
+          // só funciona num tamanho de viewport. A Antártida não está no dado do
+          // protótipo, daí o limite sul em -56°.
+          mapaCriado.fitBounds(
+            [
+              [-180, -56],
+              [180, 84],
+            ],
+            { padding: 8, animate: false },
+          );
+          setPronto(true);
+        });
         mapa.current = m;
+        // Só em desenvolvimento: dá acesso à instância pelo console e pelos
+        // scripts de verificação. Sem isso, diagnosticar enquadramento exige
+        // adivinhar a partir de posições no DOM.
+        if (import.meta.env.DEV) {
+          (window as unknown as { __mapa?: MapaLibre }).__mapa = m;
+        }
         setEventos(evts);
       } catch (e) {
         if (vivo) setErro(e instanceof Error ? e.message : String(e));
@@ -105,7 +142,12 @@ export function MapaGlobal() {
     marcadores.current = visiveis.map((e) => {
       const el = elementoDoMarcador(e, selecionado?.id === e.id);
       el.addEventListener("click", () => setSelecionado(e));
-      return new Marker({ element: el }).setLngLat([e.lon, e.lat]).addTo(m);
+      const mk = new Marker({ element: el }).setLngLat([e.lon, e.lat]).addTo(m);
+      // O MapLibre sobrescreve o aria-label do elemento com "Map marker" ao
+      // construir o Marker. Reaplicar depois é o que preserva o rótulo em pt-BR
+      // — sem isto, um leitor de tela anuncia 18 "Map marker" idênticos.
+      el.setAttribute("aria-label", rotuloDoMarcador(e));
+      return mk;
     });
 
     return () => {

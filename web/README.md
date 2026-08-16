@@ -26,6 +26,33 @@ npm run build
 
 `npm run lint` roda só a checagem de tipos (`tsc --noEmit`).
 
+```bash
+npm run verificar
+```
+
+Abre a aplicação num Chromium headless e verifica que o mapa **de fato** renderiza,
+salvando uma captura em `.artefatos/`. Precisa do servidor de desenvolvimento no ar
+(`--tema=light` verifica o outro tema).
+
+Isto não é luxo. Build limpo e tipos corretos **não provam que o mapa aparece** —
+três defeitos passaram por `tsc` e pelo bundler e só apareceram no navegador:
+
+| Defeito | Sintoma | Por que passou |
+|---|---|---|
+| `color-mix()` num `paint` do MapLibre | mapa não carrega, sem mensagem | o MapLibre tem parser de cor próprio e valida o estilo em runtime |
+| `maxBounds` com longitude ±200 | zoom ~3,8 em vez de 1,1, marcadores todos fora da tela | longitude fora de ±180 é envolvida, virando faixa de 40° |
+| `.marcador { position: relative }` | marcador *n* deslocado (n−1)×14px | mesma especificidade que `.maplibregl-marker`, e vence por ordem de importação |
+
+O terceiro é o mais instrutivo: só o 18º marcador saía do canvas, então "18
+marcadores no DOM" e uma captura plausível diziam que estava tudo bem enquanto 16
+apontavam para o lugar errado. Daí a verificação comparar cada elemento com
+`map.project()` em vez de só contar elementos.
+
+Se o Chromium reclamar de biblioteca faltando, o caminho limpo é
+`sudo npx playwright install-deps`. Sem root, dá para extrair os `.deb` de
+`libnspr4`, `libnss3` e `libasound2t64` em `.artefatos/libs` — o script detecta e
+usa automaticamente.
+
 ## Os dados vêm do protótipo, por script
 
 `npm run dados` — roda automaticamente antes de `dev` e de `build` — extrai duas

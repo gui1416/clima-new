@@ -217,7 +217,15 @@ a {
 }
 
 .marcador {
-  position: relative;
+  /* `absolute` é obrigatório, não estético. O MapLibre posiciona marcador com
+     `.maplibregl-marker { position: absolute }` e um `transform` relativo à origem
+     do contêiner. Como `.marcador` tem a mesma especificidade e é importado
+     depois, um `position: relative` aqui vence — e joga todos os marcadores no
+     fluxo normal, onde cada um é deslocado pela largura acumulada dos anteriores.
+     O marcador n erra por (n−1)×14px: com 18 eventos, o último ficava 238px fora
+     do lugar, e só ele saía do canvas. Os outros 16 erravam em silêncio, num mapa
+     que parecia plausível. */
+  position: absolute;
   width: 14px;
   height: 14px;
   border: 0;

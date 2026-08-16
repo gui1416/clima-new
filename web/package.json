@@ -10,7 +10,8 @@
     "prebuild": "npm run dados",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "verificar": "node scripts/verificar-render.mjs"
   },
   "dependencies": {
     "maplibre-gl": "^4.7.1",
@@ -22,6 +23,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.62.1",
     "typescript": "^5.7.2",
     "vite": "^6.0.3"
   }
