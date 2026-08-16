@@ -35,7 +35,7 @@ Uma pasta por superfície, sempre. Nada de back-end fora de `/api`.
 | Caminho | O que é |
 |---|---|
 | [api/](api/) | Back-end inteiro: FastAPI, conectores, ingestão, workers, migrations |
-| [web/](web/) | Front-end web (React + TS + MapLibre GL). Vazio até a Fase 4 |
+| [web/](web/) | Front-end web: React + TS + Vite + MapLibre GL. Shell navegável sobre dados de demonstração |
 | [mobile/](mobile/) | App móvel. Fora da v1; o lugar está reservado |
 | [docs/](docs/) | Plano de construção |
 | [clima-global-prototipo-v2.html](clima-global-prototipo-v2.html) | Protótipo, congelado |
@@ -88,6 +88,20 @@ ruff check clima && mypy clima
 Um teste só: `./scripts/testar.sh -k test_papel_app_nao_ignora_rls`
 
 Revisar o SQL de uma migration sem banco: `alembic upgrade head --sql`
+
+Front-end (detalhes em [web/README.md](web/README.md)), de dentro de `web/`:
+
+```bash
+npm install && npm run dev
+```
+
+```bash
+npm run build
+```
+
+`npm run dados` regenera a geometria e os eventos a partir do protótipo — roda
+sozinho antes de `dev` e `build`, e as saídas em `web/public/dados/` não são
+versionadas porque são derivadas.
 
 Protótipo: `python3 -m http.server 8000`, depois abrir
 `http://localhost:8000/clima-global-prototipo-v2.html`.

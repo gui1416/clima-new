@@ -1,0 +1,67 @@
+/* Tokens portados de clima-global-prototipo-v2.html.
+ *
+ * Já são um sistema coerente — a regra é portar, não redesenhar. Toda cor vem de
+ * custom property; nada de valor literal em regra nova.
+ *
+ * O tema é o atributo data-theme no <html>, escuro por padrão, persistido em
+ * localStorage['clima-theme'] — mesmo contrato do protótipo. */
+
+:root,
+html[data-theme="dark"] {
+  --bg: #08080a;
+  --sidebar: #0b0b0d;
+  --surface: #0f0f11;
+  --surface-2: #141417;
+  --surface-3: #1c1c20;
+  --border: #26262b;
+  --border-2: #37373e;
+  --text: #fafafa;
+  --muted: #9a9aa5;
+  --muted-2: #6b6b76;
+  --inverse: #08080a;
+  --brand: #fafafa;
+  --focus: #3b82f6;
+  --ocean: #0a0e14;
+  --land: #1b212a;
+  --land-stroke: #3a4552;
+  --critical: #ef4444;
+  --high: #f59e0b;
+  --moderate: #38bdf8;
+  --ok: #22c55e;
+  --purple: #a78bfa;
+  --shadow: 0 18px 60px rgb(0 0 0 / 42%);
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  --bg: #f1f1f2;
+  --sidebar: #fafafa;
+  --surface: #fff;
+  --surface-2: #f7f7f8;
+  --surface-3: #ededee;
+  --border: #dedee2;
+  --border-2: #c7c7cd;
+  --text: #111113;
+  --muted: #686872;
+  --muted-2: #96969e;
+  --inverse: #fff;
+  --brand: #111113;
+  --ocean: #eaeff5;
+  --land: #ccd6e0;
+  --land-stroke: #a2aebc;
+  --shadow: 0 18px 60px rgb(24 24 27 / 16%);
+  color-scheme: light;
+}
+
+:root {
+  --r-sm: 6px;
+  --r: 8px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 28%), 0 4px 14px rgb(0 0 0 / 22%);
+  --shadow-md: 0 8px 30px rgb(0 0 0 / 34%);
+  --ease: cubic-bezier(0.2, 0.8, 0.25, 1);
+  --largura-sidebar: 244px;
+  --altura-topbar: 68px;
+}
