@@ -20,26 +20,38 @@ Severidade = Literal["critical", "high", "moderate"]
 
 
 class Procedencia(BaseModel):
-    """O que uma fonte afirma sobre o evento.
-
-    A base do painel de procedência. Enquanto há uma fonte só, esta lista tem um
-    item — e é honesto que tenha: o valor do produto aparece quando são várias e
-    elas discordam.
-    """
+    """Uma fonte que compõe o evento canônico."""
 
     fonte: str
     nome: str
     source_event_id: str
     observado_em: datetime
     revisado_em: datetime
-    revisoes: int
     status: str
-    magnitude: float | None = None
-    profundidade_km: float | None = None
-    lugar: str | None = None
     atribuicao: str | None = None
-    # Só para fonte com redistribuição restrita: o payload não sai, a existência sim.
+    # Fonte com redistribuição restrita: a existência sai, o conteúdo não.
     conteudo_restrito: bool = False
+
+
+class ValorDeFonte(BaseModel):
+    fonte: str
+    valor: Any | None
+    vencedor: bool
+    conteudo_restrito: bool = False
+
+
+class CampoDivergente(BaseModel):
+    """O que cada fonte afirma sobre um campo, e qual valor foi adotado.
+
+    **Este é o painel de procedência**, e é a razão de o produto existir. Consolidar
+    escondendo a discordância repetiria o problema: cinco fontes que divergem e
+    ninguém sabe no quê. Aqui a divergência é o dado.
+    """
+
+    campo: str
+    valores: list[ValorDeFonte]
+    # Verdadeiro quando as fontes não afirmam o mesmo valor.
+    divergente: bool
 
 
 class EventoResumo(BaseModel):
@@ -58,24 +70,29 @@ class EventoResumo(BaseModel):
     metrica_rotulo: str = Field(...)
     profundidade_km: float | None
 
-    # Quantas fontes independentes confirmam. É a métrica do diferencial — e
-    # enquanto o motor de correlação não existe, vale 1 para tudo.
+    # Quantas fontes independentes confirmam. É a métrica do diferencial, e agora
+    # vem do motor de correlação em vez de ser 1 fixo.
     fontes_confirmando: int
-    revisoes: int
+    fontes: list[str]
+    # 0 a 1. Sobe com fontes independentes, desce com discordância entre elas.
+    # Nunca aparece sozinha: `fontes_confirmando` viaja ao lado, por contrato.
+    confianca: float
+    snapshots: int
     status: str
 
 
 class EventoDetalhe(EventoResumo):
     metricas: dict[str, Any]
-    xrefs: dict[str, Any]
     procedencia: list[Procedencia]
+    campos: list[CampoDivergente]
 
 
 class Pagina(BaseModel):
     total: int
     itens: list[EventoResumo]
-    # Marca honesta do estado do produto, em toda resposta de lista.
-    deduplicado: bool = False
+    # Os itens são eventos canônicos, saídos do motor de correlação. `true` não
+    # significa que o portão G2 foi atendido — significa que houve consolidação.
+    deduplicado: bool = True
     aviso: str | None = None
 
 
@@ -87,4 +104,5 @@ class Estatisticas(BaseModel):
     ultimo_evento_em: datetime | None
     janela_horas: int
     fontes_ativas: int
-    deduplicado: bool = False
+    eventos_multifonte: int
+    deduplicado: bool = True

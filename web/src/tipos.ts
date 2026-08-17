@@ -30,9 +30,12 @@ export interface EventoResumo {
   magnitude: number | null;
   metrica_rotulo: string;
   profundidade_km: number | null;
-  /** Fontes independentes que confirmam. Vale 1 até o motor de correlação existir. */
+  /** Fontes independentes que confirmam. Vem do motor de correlação. */
   fontes_confirmando: number;
-  revisoes: number;
+  fontes: string[];
+  /** 0 a 1. Nunca exibir sem `fontes_confirmando` ao lado. */
+  confianca: number;
+  snapshots: number;
   status: string;
 }
 
@@ -42,20 +45,30 @@ export interface Procedencia {
   source_event_id: string;
   observado_em: string;
   revisado_em: string;
-  revisoes: number;
   status: string;
-  magnitude: number | null;
-  profundidade_km: number | null;
-  lugar: string | null;
   atribuicao: string | null;
   /** Fonte com licença restrita: conta, mas não entrega conteúdo (portão G4). */
   conteudo_restrito: boolean;
 }
 
+export interface ValorDeFonte {
+  fonte: string;
+  valor: unknown;
+  vencedor: boolean;
+  conteudo_restrito: boolean;
+}
+
+/** O que cada fonte afirma sobre um campo. É o painel de procedência. */
+export interface CampoDivergente {
+  campo: string;
+  valores: ValorDeFonte[];
+  divergente: boolean;
+}
+
 export interface EventoDetalhe extends EventoResumo {
   metricas: Record<string, unknown>;
-  xrefs: Record<string, unknown>;
   procedencia: Procedencia[];
+  campos: CampoDivergente[];
 }
 
 export interface Pagina {
@@ -73,6 +86,7 @@ export interface Estatisticas {
   ultimo_evento_em: string | null;
   janela_horas: number;
   fontes_ativas: number;
+  eventos_multifonte: number;
   deduplicado: boolean;
 }
 

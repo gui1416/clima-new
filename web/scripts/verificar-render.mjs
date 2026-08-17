@@ -97,7 +97,10 @@ const posicoes = await pagina.evaluate(async (tol) => {
   // Compara contra a MESMA fonte que a aplicação usa: a API.
   const evts = (await (await fetch("/api/eventos?horas=24&magnitude_minima=2.5&limite=500")).json())
     .itens;
-  const porRotulo = new Map(evts.map((e) => [`${e.titulo} — ${e.lugar ?? ""}`.trim(), e]));
+  // Casa por id, não por título: numa sequência de tremores secundários vários
+  // eventos têm título idêntico, e casar por texto compararia marcador de um com
+  // coordenada de outro — produzindo desvio falso de poucos pixels.
+  const porId = new Map(evts.map((e) => [e.id, e]));
 
   let dentro = 0;
   const desviados = [];
@@ -113,7 +116,7 @@ const posicoes = await pagina.evaluate(async (tol) => {
       rotulosGenericos.push(el.title);
     }
 
-    const e = porRotulo.get(el.title);
+    const e = porId.get(el.dataset.id);
     if (!e) continue;
     const p = mapa.project([e.lon, e.lat]);
     const dx = Math.abs(cx - r.x - p.x);

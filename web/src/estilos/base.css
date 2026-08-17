@@ -709,3 +709,62 @@ a {
   font-size: 10px;
   line-height: 1.5;
 }
+
+/* ── procedência por campo ──────────────────────────────────────────────── */
+
+.proc-campo {
+  display: grid;
+  align-items: baseline;
+  gap: 8px;
+  grid-template-columns: 92px 1fr;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.proc-campo > span {
+  color: var(--muted-2);
+  font-size: 10px;
+}
+
+.proc-campo > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.proc-campo b {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* O valor adotado pela síntese. Destacar qual venceu é o ponto: o produto não
+   inventa média, ele escolhe uma fonte e diz qual. */
+.proc-campo b.adotado {
+  border-color: var(--border-2);
+  color: var(--text);
+  font-weight: 650;
+}
+
+.proc-campo b i {
+  color: var(--muted-2);
+  font-family: var(--mono);
+  font-size: 9px;
+  font-style: normal;
+}
+
+/* Campo em que as fontes discordam. É informação de primeira classe, não erro. */
+.proc-campo.divergente > span {
+  color: var(--high);
+}
+
+.proc-campo.divergente b {
+  border-color: color-mix(in srgb, var(--high), transparent 55%);
+}

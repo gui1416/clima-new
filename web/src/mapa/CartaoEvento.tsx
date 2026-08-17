@@ -62,9 +62,11 @@ export function CartaoEvento({
           <span>FONTES QUE CONFIRMAM</span>
           <strong>{evento.fontes_confirmando}</strong>
         </div>
+        {/* Confiança nunca aparece sem a contagem de fontes ao lado: sozinha, um
+            número de 0 a 1 parece medida física e não é. */}
         <div className="metrica">
-          <span>REVISÕES DA FONTE</span>
-          <strong>{evento.revisoes}</strong>
+          <span>CONFIANÇA</span>
+          <strong>{Math.round(evento.confianca * 100)}%</strong>
         </div>
       </div>
 
@@ -75,20 +77,30 @@ export function CartaoEvento({
             {detalhe.procedencia.map((p) => (
               <div className="proc-linha" key={p.fonte}>
                 <strong>{p.nome}</strong>
-                <span>
-                  {p.conteudo_restrito ? (
-                    <em>conteúdo não redistribuível</em>
-                  ) : (
-                    <>
-                      M {numero(p.magnitude)} · {p.status} · {p.revisoes} rev.
-                    </>
-                  )}
-                </span>
+                <span>{p.conteudo_restrito ? <em>licença restrita</em> : p.status}</span>
               </div>
             ))}
+
+            {/* Campo por campo, o que cada fonte afirma. Com uma fonte não há
+                divergência — e mostrar isso é honesto, não uma falha. */}
+            {detalhe.campos.map((c) => (
+              <div className={`proc-campo${c.divergente ? " divergente" : ""}`} key={c.campo}>
+                <span>{c.campo}</span>
+                <div>
+                  {c.valores.map((v) => (
+                    <b key={v.fonte} className={v.vencedor ? "adotado" : ""}>
+                      {v.conteudo_restrito ? "—" : String(v.valor)}
+                      <i>{v.fonte}</i>
+                    </b>
+                  ))}
+                </div>
+              </div>
+            ))}
+
             <p className="proc-nota">
-              Uma fonte confirma este evento. Divergência entre fontes aparece aqui quando o
-              motor de correlação existir — Fase 2.
+              {detalhe.fontes_confirmando > 1
+                ? "Valor adotado em destaque; a precedência é por campo, nunca média entre fontes."
+                : "Uma fonte confirma este evento. A divergência aparece quando duas ou mais o reportam."}
             </p>
           </>
         ) : (

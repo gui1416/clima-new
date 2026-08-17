@@ -35,14 +35,13 @@ export const ROTAS: readonly Rota[] = [
   { caminho: "/relatorios", rotulo: "Relatórios", icone: "▭", grupo: "distribuicao" },
 ] as const;
 
-/** Aviso que acompanha toda tela de dado. O back-end manda `deduplicado: false`;
- *  a interface não deixa isso implícito. */
-function AvisoDedup({ total }: { total: number }) {
+/** O aviso vem da API, não é redigido aqui: o back-end sabe quantos eventos têm mais
+ *  de uma fonte, e a interface não deve estimar isso por conta própria. */
+function AvisoDedup({ aviso }: { aviso: string | null }) {
+  if (!aviso) return null;
   return (
     <p className="aviso-demo">
-      <strong>Sem deduplicação entre fontes.</strong> Os {inteiro(total)} registros vêm do USGS e
-      cada um conta como um evento. Quando a segunda fonte entrar, o mesmo sismo aparecerá duas
-      vezes até o motor de correlação uni-los — Fase 2 do plano.
+      <strong>Correlação ativa.</strong> {aviso}
     </p>
   );
 }
@@ -82,7 +81,7 @@ export function TelaVisaoGeral() {
         </span>
       </div>
 
-      {e && <AvisoDedup total={e.eventos_total} />}
+      {recentes.dado && <AvisoDedup aviso={recentes.dado.aviso} />}
 
       <div className="painel-grid">
         <Painel titulo="SISMOS NA JANELA" valor={inteiro(e?.eventos_total)} nota={`${horas} h`} />
@@ -97,9 +96,9 @@ export function TelaVisaoGeral() {
           nota="observado na fonte"
         />
         <Painel
-          titulo="FONTES ATIVAS"
-          valor={inteiro(e?.fontes_ativas)}
-          nota="de 7 catalogadas"
+          titulo="CONFIRMADOS POR 2+ FONTES"
+          valor={inteiro(e?.eventos_multifonte)}
+          nota={`${inteiro(e?.fontes_ativas)} fontes ativas`}
         />
       </div>
 
@@ -210,7 +209,7 @@ export function TelaEventos() {
         </span>
       </div>
 
-      {pagina.dado && <AvisoDedup total={pagina.dado.total} />}
+      {pagina.dado && <AvisoDedup aviso={pagina.dado.aviso} />}
       {pagina.erro && <p className="aviso-erro">Falha ao atualizar: {pagina.erro}</p>}
 
       <TabelaEventos itens={pagina.dado?.itens ?? []} />
@@ -255,7 +254,7 @@ function TabelaEventos({
               <strong>{numero(e.magnitude, 1)}</strong>
             </td>
             {!compacta && <td className="num">{numero(e.profundidade_km, 1)} km</td>}
-            {!compacta && <td className="num">{e.revisoes}</td>}
+            {!compacta && <td className="num">{Math.round(e.confianca * 100)}%</td>}
             <td className="num">{e.fontes_confirmando}</td>
             <td>{instante(e.ocorrido_em)}</td>
           </tr>

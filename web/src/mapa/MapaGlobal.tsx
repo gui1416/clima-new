@@ -26,6 +26,9 @@ function elementoDoMarcador(e: EventoResumo, selecionado: boolean): HTMLButtonEl
   b.setAttribute("aria-pressed", String(selecionado));
   b.setAttribute("aria-label", rotuloDoMarcador(e));
   b.title = `${e.titulo} — ${e.lugar ?? ""}`.trim();
+  // Chave única para verificação e depuração. O `title` não serve: numa sequência
+  // de tremores secundários vários eventos têm título idêntico.
+  b.dataset.id = e.id;
   return b;
 }
 
