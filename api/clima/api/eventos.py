@@ -327,6 +327,7 @@ async def estatisticas(
         fontes_ativas=ativas,
         eventos_multifonte=agg.multi,
         deduplicado=True,
+        aviso=_aviso(agg.total, agg.multi),
     )
 
 

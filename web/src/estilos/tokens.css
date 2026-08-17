@@ -65,3 +65,58 @@ html[data-theme="light"] {
   --largura-sidebar: 244px;
   --altura-topbar: 68px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tokens de visualização
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Validados com o script da skill dataviz, não escolhidos a olho. O que a
+   validação apurou, e que muda decisões:
+
+   1. As cores de severidade (--critical/--high/--moderate, herdadas do protótipo)
+      REPROVAM a banda de luminosidade categórica no tema escuro: âmbar em L 0,769 e
+      azul em 0,754, acima do teto de 0,67. Mas severidade é escala de STATUS —
+      ordem reservada, significado fixo, sempre com ícone e rótulo — e a banda
+      categórica não se aplica a status. Ficam como estão, com uma exigência: nunca
+      aparecer sem ponto e rótulo ao lado.
+
+   2. Tentar "corrigir" escurecendo o âmbar PIORA a acessibilidade. Sob
+      deuteranopia, vermelho e âmbar colapsam na matiz e a luminosidade é o único
+      canal que os separa: escurecer o âmbar derruba o ΔE de 13,9 para 4,4. A
+      correção óbvia era a errada.
+
+   3. No tema claro, âmbar (2,15:1) e azul (2,14:1) ficam abaixo de 3:1 sobre
+      branco. É o caso documentado e aceito para status, e a mitigação é
+      obrigatória, não opcional: valor numérico visível ao lado de toda barra.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Rampa ORDINAL de uma matiz, para contagem de fontes que confirmam — a métrica
+     do diferencial. Mais fontes = mais escuro no claro. Passa monotonicidade,
+     ΔL >= 0,06 e contraste da ponta clara. */
+  --ord-1: #86b6ef;
+  --ord-2: #2a78d6;
+  --ord-3: #104281;
+
+  /* Estado de fonte de dado. Papéis reservados, sempre com ícone e rótulo. */
+  --estado-ok: #0ca30c;
+  --estado-atencao: #fab219;
+  --estado-bloqueado: #d03b3b;
+  --estado-inerte: #6b6b76;
+
+  /* Trilho de medidor e grade: recessivos, nunca competindo com a marca. */
+  --trilho: #ededee;
+  --grade: #dedee2;
+}
+
+html[data-theme="dark"] {
+  /* Âncora invertida no escuro: mais fontes = mais CLARO. Não é o mesmo conjunto
+     espelhado — são passos escolhidos e validados contra a superfície escura. */
+  --ord-1: #184f95;
+  --ord-2: #2a78d6;
+  --ord-3: #86b6ef;
+
+  --estado-inerte: #6b6b76;
+  --trilho: #1c1c20;
+  --grade: #26262b;
+}

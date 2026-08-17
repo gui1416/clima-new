@@ -88,6 +88,7 @@ export interface Estatisticas {
   fontes_ativas: number;
   eventos_multifonte: number;
   deduplicado: boolean;
+  aviso: string | null;
 }
 
 export interface SaudeFonte {
@@ -96,6 +97,11 @@ export interface SaudeFonte {
   ativa: boolean;
   redistribuicao: "livre" | "atribuicao" | "interna";
   intervalo_poll_seg: number;
+  endpoint: string | null;
+  requer_chave: boolean;
+  /** Nulo = nunca sondada. Distingue fato medido de suposição herdada. */
+  validado_em: string | null;
+  observacao: string | null;
   ultima_coleta_ok: string | null;
   ultimo_erro_em: string | null;
   erros_1h: number;

@@ -106,3 +106,7 @@ class Estatisticas(BaseModel):
     fontes_ativas: int
     eventos_multifonte: int
     deduplicado: bool = True
+    # O mesmo texto que /eventos devolve, mas calculado sobre ESTA janela e ESTE
+    # piso de magnitude. Sem isso o painel citava números de uma consulta e o aviso
+    # de outra — duas respostas para a mesma pergunta, lado a lado na tela.
+    aviso: str | None = None

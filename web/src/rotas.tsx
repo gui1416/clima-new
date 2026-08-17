@@ -16,7 +16,12 @@ import {
 } from "./dados/api";
 import { inteiro, instante, numero, relogio } from "./formato";
 import { MapaGlobal } from "./mapa/MapaGlobal";
-import { ROTULO_SEVERIDADE, SEVERIDADES, type Severidade } from "./tipos";
+import {
+  ROTULO_SEVERIDADE,
+  SEVERIDADES,
+  type SaudeFonte,
+  type Severidade,
+} from "./tipos";
 
 export interface Rota {
   caminho: string;
@@ -81,7 +86,9 @@ export function TelaVisaoGeral() {
         </span>
       </div>
 
-      {recentes.dado && <AvisoDedup aviso={recentes.dado.aviso} />}
+      {/* Do mesmo `est` que alimenta os painéis: o aviso e os números precisam
+          responder à mesma pergunta com o mesmo filtro. */}
+      {e && <AvisoDedup aviso={e.aviso} />}
 
       <div className="painel-grid">
         <Painel titulo="SISMOS NA JANELA" valor={inteiro(e?.eventos_total)} nota={`${horas} h`} />
@@ -102,7 +109,23 @@ export function TelaVisaoGeral() {
         />
       </div>
 
-      <div className="duas-colunas">
+      <div className="tres-colunas">
+        <section className="cartao">
+          <h2>Confirmação entre fontes</h2>
+          {/* A métrica do diferencial, em rampa ORDINAL de uma matiz: mais fontes =
+              passo mais escuro (invertido no tema escuro). Ordinal e não categórica
+              porque trocar a ordem mudaria o significado. */}
+          <ConfirmacaoEntreFontes
+            total={e?.eventos_total ?? 0}
+            multifonte={e?.eventos_multifonte ?? 0}
+          />
+          <p className="nota">
+            É a única parte do produto que não é commodity. USGS e EMSC só se sobrepõem acima de
+            M 4,5, então a maioria dos eventos tem fonte única — e a interface diz isso em vez de
+            sugerir consolidação que não houve.
+          </p>
+        </section>
+
         <section className="cartao">
           <h2>Por severidade</h2>
           {SEVERIDADES.map((s) => {
@@ -126,6 +149,9 @@ export function TelaVisaoGeral() {
           </p>
         </section>
 
+      </div>
+
+      <div className="duas-colunas">
         <section className="cartao">
           <h2>Revisão da fonte</h2>
           {Object.entries(e?.por_status ?? {}).map(([status, n]) => (
@@ -149,9 +175,53 @@ export function TelaVisaoGeral() {
 
       <section className="cartao">
         <h2>Mais recentes</h2>
+        {/* Recorte diferente dos painéis, e o rótulo diz qual — a tabela mostra o
+            que é operacionalmente relevante, não a contagem total. */}
+        <p className="nota" style={{ margin: "0 0 12px" }}>
+          Acima de M 2,5, os oito mais recentes. Os painéis acima contam todos.
+        </p>
         <TabelaEventos itens={recentes.dado?.itens ?? []} compacta />
       </section>
     </div>
+  );
+}
+
+/** Medidor de duas faixas, com valor visível em cada uma.
+ *
+ * O rótulo numérico não é enfeite: no tema claro os passos claros da rampa ficam
+ * abaixo de 3:1 sobre branco, e a mitigação exigida é exatamente o valor legível
+ * ao lado. Texto em tinta de texto, nunca na cor da série.
+ */
+function ConfirmacaoEntreFontes({ total, multifonte }: { total: number; multifonte: number }) {
+  const unica = Math.max(0, total - multifonte);
+  const faixas = [
+    { rotulo: "uma fonte", n: unica, passo: "ord-1" },
+    { rotulo: "duas ou mais", n: multifonte, passo: "ord-3" },
+  ];
+  return (
+    <>
+      <div className="medidor" role="img" aria-label={`${unica} eventos com uma fonte, ${multifonte} com duas ou mais`}>
+        {faixas.map((f) => (
+          <i
+            key={f.rotulo}
+            className={f.passo}
+            style={{ width: `${total ? (f.n / total) * 100 : 0}%` }}
+            title={`${f.rotulo}: ${f.n}`}
+          />
+        ))}
+      </div>
+      {faixas.map((f) => (
+        <div className="barra-linha" key={f.rotulo}>
+          <span>
+            <i className={`quadro ${f.passo}`} /> {f.rotulo}
+          </span>
+          <div className="barra">
+            <i className={f.passo} style={{ width: `${total ? (f.n / total) * 100 : 0}%` }} />
+          </div>
+          <b>{inteiro(f.n)}</b>
+        </div>
+      ))}
+    </>
   );
 }
 
@@ -264,16 +334,53 @@ function TabelaEventos({
   );
 }
 
-// ── fontes ─────────────────────────────────────────────────────────────────
+// ── fontes ────────────────────────────────────────────────────────────────
+
+/** Estado de uma fonte, derivado dos fatos e não digitado à mão.
+ *
+ * Escala de STATUS: papéis reservados, e a cor **nunca** carrega o significado
+ * sozinha — sempre com símbolo e rótulo. Sem isso, um leitor com deuteranopia lê
+ * "coletando" e "bloqueada" como a mesma coisa.
+ */
+function estadoDaFonte(f: SaudeFonte): { papel: string; simbolo: string; rotulo: string } {
+  if (f.ativa && f.erros_1h > 0) return { papel: "atencao", simbolo: "▲", rotulo: "coletando com erros" };
+  if (f.ativa) return { papel: "ok", simbolo: "●", rotulo: "coletando" };
+  // `validado_em` nulo vem ANTES da licença: não saber a URL é obstáculo mais
+  // fundamental que não poder redistribuir. O Copernicus tem os dois problemas, e
+  // mostrar o menos básico esconderia o que de fato bloqueia o próximo passo.
+  if (!f.validado_em) return { papel: "bloqueado", simbolo: "■", rotulo: "endpoint não localizado" };
+  if (f.redistribuicao === "interna") return { papel: "bloqueado", simbolo: "■", rotulo: "licença bloqueia" };
+  if (f.requer_chave) return { papel: "atencao", simbolo: "▲", rotulo: "exige chave" };
+  return { papel: "inerte", simbolo: "○", rotulo: "validada, sem conector" };
+}
 
 const ROTULO_LICENCA: Record<string, string> = {
   livre: "livre, inclusive comercial",
   atribuicao: "livre com atribuição",
-  interna: "só uso interno — bloqueio G4",
+  interna: "só uso interno",
 };
+
+/** Cadência como medidor de trilho, não como número solto.
+ *
+ * Os intervalos vão de 60 s a 3600 s — 60× de amplitude. Escala logarítmica,
+ * porque em linear tudo abaixo de 600 s viraria um traço indistinguível.
+ */
+function Cadencia({ segundos }: { segundos: number }) {
+  const fracao = Math.log(segundos / 60) / Math.log(3600 / 60);
+  const texto = segundos >= 3600 ? `${segundos / 3600} h` : segundos >= 60 ? `${segundos / 60} min` : `${segundos} s`;
+  return (
+    <span className="cadencia" title={`${segundos} s entre coletas`}>
+      <i style={{ width: `${Math.max(6, fracao * 100)}%` }} />
+      <b>{texto}</b>
+    </span>
+  );
+}
 
 export function TelaFontes() {
   const fontes = usePeriodico(buscarFontes);
+  const lista = fontes.dado ?? [];
+  const coletando = lista.filter((f) => f.ativa).length;
+  const validadas = lista.filter((f) => f.validado_em).length;
 
   return (
     <div className="pagina">
@@ -281,41 +388,74 @@ export function TelaFontes() {
         <span className="atualizado">atualizado {relogio(fontes.atualizadoEm)}</span>
       </div>
 
+      <div className="painel-grid">
+        <Painel titulo="COLETANDO" valor={inteiro(coletando)} nota={`de ${lista.length} catalogadas`} />
+        <Painel titulo="ENDPOINT VALIDADO" valor={inteiro(validadas)} nota="sondado, não suposto" />
+        <Painel
+          titulo="BLOQUEADAS POR LICENÇA"
+          valor={inteiro(lista.filter((f) => f.redistribuicao === "interna").length)}
+          nota="participam da correlação"
+        />
+        <Painel
+          titulo="EXIGEM CHAVE"
+          valor={inteiro(lista.filter((f) => f.requer_chave).length)}
+          nota="cadastro necessário"
+        />
+      </div>
+
       <p className="aviso-demo">
         <strong>Licença é coluna no banco, não anotação.</strong> Fonte marcada como uso interno
-        participa da correlação e da contagem de confiança, mas a API remove o conteúdo dela da
+        participa da correlação e da contagem de confiança, e a API remove o conteúdo dela da
         resposta. Copernicus e INMET só saem desse estado com resposta jurídica por escrito.
       </p>
 
-      <table className="tabela">
+      <table className="tabela tabela-fontes">
         <thead>
           <tr>
             <th>Fonte</th>
             <th>Estado</th>
             <th>Licença</th>
-            <th className="num">Intervalo</th>
+            <th>Cadência</th>
             <th>Última coleta</th>
             <th className="num">Erros 1 h</th>
           </tr>
         </thead>
         <tbody>
-          {(fontes.dado ?? []).map((f) => (
-            <tr key={f.source_id}>
-              <td>{f.nome}</td>
-              <td>
-                <i className={`ponto ${f.ativa ? "" : "inativo"}`} />{" "}
-                {f.ativa ? "coletando" : "catalogada, sem conector"}
-              </td>
-              <td className={f.redistribuicao === "interna" ? "restrito" : ""}>
-                {ROTULO_LICENCA[f.redistribuicao] ?? f.redistribuicao}
-              </td>
-              <td className="num">{f.intervalo_poll_seg} s</td>
-              <td>{instante(f.ultima_coleta_ok)}</td>
-              <td className="num">{f.erros_1h}</td>
-            </tr>
-          ))}
+          {lista.map((f) => {
+            const e = estadoDaFonte(f);
+            return (
+              <tr key={f.source_id}>
+                <td>
+                  <strong>{f.nome}</strong>
+                  {f.endpoint && <span className="endpoint">{f.endpoint}</span>}
+                </td>
+                <td>
+                  {/* Símbolo + rótulo + cor. Nunca cor sozinha. */}
+                  <span className={`estado estado-${e.papel}`}>
+                    <i aria-hidden="true">{e.simbolo}</i>
+                    {e.rotulo}
+                  </span>
+                </td>
+                <td className={f.redistribuicao === "interna" ? "restrito" : ""}>
+                  {ROTULO_LICENCA[f.redistribuicao] ?? f.redistribuicao}
+                </td>
+                <td>
+                  {/* Fonte não sondada não tem cadência medida. Desenhar a barra
+                      daria aparência de fato a um valor que é só um padrão herdado. */}
+                  {f.validado_em ? <Cadencia segundos={f.intervalo_poll_seg} /> : <span className="nao-medido">não medida</span>}
+                </td>
+                <td>{instante(f.ultima_coleta_ok)}</td>
+                <td className="num">{f.erros_1h}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
+
+      <p className="nota">
+        Cadência medida a partir do <code>cache-control</code> de cada fonte, não estimada. Sondar
+        mais rápido que o cache declarado devolve o mesmo dado com timestamp novo.
+      </p>
     </div>
   );
 }

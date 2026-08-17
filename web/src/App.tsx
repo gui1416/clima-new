@@ -10,6 +10,7 @@ import {
   TelaRelatorios,
   TelaVisaoGeral,
 } from "./rotas";
+import { buscarEstatisticas, usePeriodico } from "./dados/api";
 import { alternarTema, temaAtual } from "./tema";
 
 const GRUPOS = [
@@ -19,6 +20,10 @@ const GRUPOS = [
 
 export function App() {
   const [tema, setTema] = useState(temaAtual);
+  // A pílula precisa vir do dado. Escrita à mão, ela dizia "1 fonte · sem
+  // deduplicação" depois de o EMSC entrar e o motor já ter unido 7 eventos — texto
+  // fixo sobre estado que muda é mentira com data de validade.
+  const est = usePeriodico(() => buscarEstatisticas(24, 0));
   const { pathname } = useLocation();
   const rota = ROTAS.find((r) => r.caminho === pathname);
 
@@ -48,11 +53,12 @@ export function App() {
           <h1>{rota?.rotulo ?? "Clima Global"}</h1>
           <span className="espacador" />
 
-          {/* Dado real do USGS. Não diz "ao vivo" porque a cadência é de 60 s e a
-              fonte é uma só — o rótulo descreve o que existe. */}
-          <span className="pilula">
+          {/* Descreve o que existe, sem prometer "ao vivo": a cadência é de 60 s. */}
+          <span className="pilula" title={est.dado?.aviso ?? undefined}>
             <i className="ponto" />
-            USGS · 1 fonte · sem deduplicação
+            {est.dado
+              ? `${est.dado.fontes_ativas} fontes · ${est.dado.eventos_multifonte} eventos com 2+`
+              : "carregando…"}
           </span>
 
           <button
