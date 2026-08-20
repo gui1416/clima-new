@@ -1,10 +1,7 @@
 # api — back-end
 
-FastAPI, PostgreSQL/PostGIS, ARQ. Estado: **Fase 0** do
-[plano](../docs/plano-de-construcao.md) — coleta de `payload_raw` do USGS.
-
-Ainda não existe: parser, motor de correlação, API de produto. Nesta ordem, nas
-Fases 1, 2 e 3.
+FastAPI, PostgreSQL/PostGIS e ARQ. O backend coleta payloads imutáveis, normaliza
+observações, correlaciona fontes e serve eventos canônicos com procedência.
 
 ## Subir
 
@@ -36,10 +33,12 @@ clima/
 ├─ dominio.py         vocabulários que espelham os CHECKs do banco
 ├─ db.py              engine, sessões e o contexto de tenant (RLS)
 ├─ models/            SQLAlchemy
-├─ connectors/        um módulo por fonte: coletar() agora, analisar() na Fase 1
-├─ ingest/            runner, partições, continuidade
+├─ connectors/        coleta e normalização, um módulo por fonte
+├─ correlation/       deduplicação, clustering e síntese canônica
+├─ ingest/            runner, parser, partições e continuidade
+├─ api/               eventos, estatísticas e fila de revisão
 ├─ workers/           agendamento ARQ
-└─ app.py             API operacional (não é a API do produto)
+└─ app.py             aplicação FastAPI e endpoints operacionais
 migrations/           Alembic; DDL de raw_payloads é escrito à mão
 ```
 
@@ -69,6 +68,27 @@ Filtrar (argumentos vão para o pytest): `./scripts/testar.sh -k rls`
 
 Os testes de `tests/integracao/` conectam como `clima_app`, não como dono — é o
 que faz os testes de RLS medirem comportamento real em vez de nada.
+
+## Operação
+
+- `GET /saude` verifica lacunas, fontes silenciosas, parser e partições.
+- `GET /metricas` expõe contadores HTTP no formato Prometheus.
+- `GET /api/tiles/{z}/{x}/{y}.mvt` entrega tiles vetoriais.
+- `WS /api/eventos/stream?desde=<ISO-8601>` entrega deltas e heartbeat. Sem
+  `desde`, o corte é **agora**: um fluxo ao vivo entrega o que mudou a partir da
+  conexão, e despejar o histórico na abertura seria o oposto de delta. O padrão
+  anterior era `datetime.min.astimezone()`, que no Linux levanta
+  `ValueError: year 0 is out of range` — o `except ValueError` escrito para
+  ISO-8601 malformado engolia isso e recusava com 1008 **toda** conexão sem
+  `desde`, que é toda primeira conexão de todo cliente. O uvicorn registrava
+  `connection open` normalmente e só o cliente via a recusa. Coberto por
+  `test_fluxo_aceita_conexao_sem_desde`.
+- `/api/revisoes` lista e decide casos incertos; exige `X-API-Key` igual a
+  `ADMIN_API_KEY`.
+
+Configure `ALERT_WEBHOOK_URL` para receber falhas de continuidade. Backups podem
+ser gerados com `./scripts/backup-backend.sh`; valide cada arquivo com
+`./scripts/verificar-restauracao.sh caminho.dump`.
 
 ## Multi-tenancy
 

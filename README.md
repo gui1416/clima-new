@@ -25,7 +25,7 @@ carrega os avisos correspondentes e a API os devolve em toda resposta.
 
 | Parte | Estado |
 |---|---|
-| Coleta de `payload_raw` | **funcionando** — USGS e EMSC, a cada 60 s |
+| Coleta de `payload_raw` | **funcionando** — USGS/EMSC a cada 60 s; GDACS a cada 15 min |
 | Parser → observações normalizadas | **funcionando** — append-only, com replay |
 | Motor de correlação | **construído e exercitado**, ver ressalva abaixo |
 | API de leitura | **funcionando** — `/api/eventos`, `/api/estatisticas` |
@@ -38,10 +38,10 @@ carrega os avisos correspondentes e a API os devolve em toda resposta.
 O motor está pronto, testado e rodando — mas **quase não tem o que deduplicar
 ainda**, e o motivo é de dados, não de código.
 
-Medido em execução real: os catálogos do USGS e do EMSC só se sobrepõem na faixa
-global de **M ≳ 4,5**. O USGS reporta eventos pequenos apenas em território
-americano; o EMSC, apenas nas regiões de suas agências contribuintes. Então um par
-cross-fonte aparece poucas vezes ao dia, não por hora.
+Medido em execução real: os catálogos do USGS e do EMSC só se sobrepõem de forma
+consistente na faixa global de **M ≳ 4,5**. O GDACS agora acrescenta uma terceira
+fonte para sismos significativos e carrega o identificador NEIC/USGS, permitindo
+vínculo determinístico e a construção de verdade-base real.
 
 Consequência: o portão de qualidade **G2** (precisão ≥ 0,95, recall ≥ 0,80) **não
 está atendido**, por duas razões independentes — não há positivo real suficiente, e a
@@ -135,9 +135,9 @@ conteúdo dela da resposta da API.
 |---|---|---|
 | USGS | coletando | livre — domínio público dos EUA |
 | EMSC | coletando | atribuição — **confirmar** termos comerciais |
+| GDACS | coletando | atribuição — **confirmar** termos comerciais |
 | NOAA / NWS | catalogada | livre — domínio público |
 | NASA EONET, FIRMS | catalogadas | atribuição |
-| GDACS | catalogada | atribuição — **confirmar** |
 | Copernicus EMS, INMET | catalogadas | **uso interno** — bloqueio jurídico pendente |
 
 O portão **G4** impede qualquer tier pago que exponha fonte não confirmada.

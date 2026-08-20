@@ -10,7 +10,7 @@ import hashlib
 from datetime import UTC, datetime
 
 import httpx
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, text, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from clima.config import TENANT_SISTEMA, config
@@ -18,7 +18,7 @@ from clima.connectors import Validadores, conector
 from clima.db import sessao
 from clima.dominio import ResultadoColeta
 from clima.logs import log
-from clima.models import ColetaRun, CorpoPayload, Fonte, RawPayload
+from clima.models import ColetaRun, CorpoPayload, RawPayload
 
 _log = log("ingest")
 
@@ -123,9 +123,32 @@ async def coletar_fonte(source_id: str) -> ResultadoColeta:
 
 
 async def coletar_ativas() -> dict[str, str]:
-    """Coleta todas as fontes marcadas ativas e com conector implementado."""
+    """Coleta fontes ativas cuja cadência já venceu.
+
+    O worker acorda a cada minuto, mas cada fonte declara sua própria cadência.
+    Sem este filtro, ativar EONET (1 h) ou GDACS (15 min) os consultaria 60 ou 15
+    vezes além do necessário.
+    """
     async with sessao() as s:
-        ids = list((await s.execute(select(Fonte.id).where(Fonte.ativa.is_(True)))).scalars())
+        ids = list(
+            (
+                await s.execute(
+                    text(
+                        """
+                        SELECT f.id
+                        FROM sources f
+                        WHERE f.ativa
+                          AND NOT EXISTS (
+                            SELECT 1 FROM ingest_runs r
+                            WHERE r.source_id = f.id
+                              AND r.started_at > now() - make_interval(secs => f.intervalo_poll_seg)
+                          )
+                        ORDER BY f.id
+                        """
+                    )
+                )
+            ).scalars()
+        )
 
     resultados: dict[str, str] = {}
     for source_id in ids:

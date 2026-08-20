@@ -59,6 +59,88 @@ async def test_lista_eventos(cliente: httpx.AsyncClient, com_dados: None) -> Non
     assert "," in e["titulo"], "número em pt-BR usa vírgula decimal"
 
 
+async def test_paginacao_por_cursor_nao_repete_eventos(
+    cliente: httpx.AsyncClient, com_dados: None
+) -> None:
+    primeira = (
+        await cliente.get(
+            "/api/eventos", params={"horas": 24 * 30, "magnitude_minima": 0, "limite": 2}
+        )
+    ).json()
+    assert len(primeira["itens"]) == 2
+    assert primeira["proximo_cursor"]
+
+    segunda = (
+        await cliente.get(
+            "/api/eventos",
+            params={
+                "horas": 24 * 30,
+                "magnitude_minima": 0,
+                "limite": 2,
+                "cursor": primeira["proximo_cursor"],
+            },
+        )
+    ).json()
+    assert len(segunda["itens"]) == 2
+    assert {e["id"] for e in primeira["itens"]}.isdisjoint(
+        {e["id"] for e in segunda["itens"]}
+    )
+
+
+async def test_tile_vetorial(cliente: httpx.AsyncClient, com_dados: None) -> None:
+    resposta = await cliente.get(
+        "/api/tiles/0/0/0.mvt", params={"horas": 24 * 30, "magnitude_minima": 0}
+    )
+    assert resposta.status_code == 200
+    assert resposta.headers["content-type"].startswith("application/vnd.mapbox-vector-tile")
+    assert resposta.content
+
+
+def test_fluxo_aceita_conexao_sem_desde() -> None:
+    """Conectar sem ``desde`` — o caso de toda primeira conexão de todo cliente.
+
+    Regressão de um defeito que tornava o endpoint inutilizável sem produzir erro
+    visível no servidor: o padrão era ``datetime.min.astimezone()``, que no Linux
+    levanta ``ValueError: year 0 is out of range`` porque a conversão passa por
+    ``localtime()``. O ``except ValueError`` logo abaixo — escrito para pegar
+    ISO-8601 malformado — engolia isso e fechava com 1008 "parâmetro desde
+    inválido". O log do uvicorn registrava ``connection open`` normalmente, e só
+    o cliente via a recusa.
+
+    Síncrono de propósito: ``TestClient`` é o único cliente da suíte que fala
+    WebSocket.
+    """
+    from starlette.testclient import TestClient
+
+    with TestClient(app) as cliente_ws:
+        with cliente_ws.websocket_connect("/api/eventos/stream") as ws:
+            primeira = ws.receive_json()
+
+    # Sem backlog: um fluxo ao vivo entrega o que mudou a partir da conexão, e o
+    # padrão "agora" é o que garante isso. Despejar o histórico na abertura seria
+    # o oposto de delta.
+    assert primeira["tipo"] == "heartbeat"
+    assert "desde" in primeira
+
+
+def test_fluxo_recusa_desde_malformado() -> None:
+    """O 1008 continua valendo para o que ele foi escrito: ISO-8601 inválido."""
+    from starlette.testclient import TestClient
+    from starlette.websockets import WebSocketDisconnect
+
+    with TestClient(app) as cliente_ws:
+        with pytest.raises(WebSocketDisconnect) as erro:
+            with cliente_ws.websocket_connect("/api/eventos/stream?desde=ontem") as ws:
+                ws.receive_json()
+
+    assert erro.value.code == 1008
+
+
+async def test_revisoes_fechadas_sem_chave(cliente: httpx.AsyncClient) -> None:
+    resposta = await cliente.get("/api/revisoes")
+    assert resposta.status_code == 401
+
+
 async def test_piso_de_magnitude_e_de_apresentacao(
     cliente: httpx.AsyncClient, com_dados: None, dono: AsyncEngine
 ) -> None:
@@ -132,7 +214,7 @@ async def test_estatisticas(cliente: httpx.AsyncClient, com_dados: None) -> None
     assert sum(e["por_severidade"].values()) == 11
     assert sum(e["por_status"].values()) == 11
     assert e["magnitude_maxima"] == 2.78
-    assert e["fontes_ativas"] == 2, "USGS e EMSC"
+    assert e["fontes_ativas"] == 3, "USGS, EMSC e GDACS"
     assert e["deduplicado"] is True
     assert e["eventos_multifonte"] == 0, "uma fonte na fixture"
 

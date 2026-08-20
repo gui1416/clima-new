@@ -12,10 +12,15 @@ M ≳ 4,5), a maioria dos eventos terá uma fonte só, e o `aviso` diz isso.
 
 from __future__ import annotations
 
+import asyncio
+import base64
+import binascii
+from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Annotated, Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import Response
 from sqlalchemy import text
 
 from clima.api.esquemas import (
@@ -114,6 +119,20 @@ def _aviso(total: int, multifonte: int) -> str:
     )
 
 
+def _codificar_cursor(instante: datetime, evento_id: str) -> str:
+    bruto = f"{instante.isoformat()}|{evento_id}".encode()
+    return base64.urlsafe_b64encode(bruto).decode().rstrip("=")
+
+
+def _decodificar_cursor(cursor: str) -> tuple[datetime, str]:
+    try:
+        preenchido = cursor + "=" * (-len(cursor) % 4)
+        instante, evento_id = base64.urlsafe_b64decode(preenchido).decode().split("|", 1)
+        return datetime.fromisoformat(instante), evento_id
+    except (ValueError, UnicodeDecodeError, binascii.Error):
+        raise HTTPException(422, "cursor inválido") from None
+
+
 @router.get("/eventos", response_model=Pagina)
 async def listar(
     horas: Annotated[int, Query(ge=1, le=24 * 30, description="Janela de tempo")] = 24,
@@ -124,6 +143,9 @@ async def listar(
     ] = 0,
     bbox: Annotated[str, Query(description="oeste,sul,leste,norte")] = "",
     limite: Annotated[int, Query(ge=1, le=1000)] = 300,
+    cursor: Annotated[
+        str | None, Query(description="Cursor devolvido pela página anterior")
+    ] = None,
 ) -> Pagina:
     if bbox:
         partes = bbox.split(",")
@@ -140,7 +162,11 @@ async def listar(
         "severidade": severidade,
         "fontes_min": fontes_minimas,
         "bbox": bbox,
+        "cursor_em": None,
+        "cursor_id": None,
     }
+    if cursor:
+        params["cursor_em"], params["cursor_id"] = _decodificar_cursor(cursor)
     async with sessao() as s:
         agg = (
             await s.execute(
@@ -154,16 +180,28 @@ async def listar(
         ).one()
         linhas = (
             await s.execute(
-                text(f"{SELECT_BASE} ORDER BY v.observed_at DESC LIMIT :limite"),
-                params | {"limite": limite},
+                text(
+                    f"{SELECT_BASE} "
+                    "AND (CAST(:cursor_em AS timestamptz) IS NULL OR (v.observed_at, v.id) < "
+                    "(CAST(:cursor_em AS timestamptz), CAST(:cursor_id AS uuid))) "
+                    "ORDER BY v.observed_at DESC, v.id DESC LIMIT :limite"
+                ),
+                params | {"limite": limite + 1},
             )
         ).all()
+
+    tem_proxima = len(linhas) > limite
+    linhas = linhas[:limite]
+    proximo = None
+    if tem_proxima and linhas:
+        proximo = _codificar_cursor(linhas[-1].observed_at, str(linhas[-1].id))
 
     return Pagina(
         total=agg.total,
         itens=[_resumo(r) for r in linhas],
         deduplicado=True,
         aviso=_aviso(agg.total, agg.multi),
+        proximo_cursor=proximo,
     )
 
 
@@ -299,22 +337,23 @@ async def estatisticas(
                 params,
             )
         ).one()
-        por_sev = dict(
-            (
-                await s.execute(
-                    text(f"WITH q AS ({SELECT_BASE}) SELECT severidade, count(*) FROM q GROUP BY 1"),
+        linhas_severidade = (
+            await s.execute(
+                    text(
+                        f"WITH q AS ({SELECT_BASE}) "
+                        "SELECT severidade, count(*) FROM q GROUP BY 1"
+                    ),
                     params,
-                )
-            ).all()
-        )
-        por_status = dict(
-            (
-                await s.execute(
-                    text(f"WITH q AS ({SELECT_BASE}) SELECT status, count(*) FROM q GROUP BY 1"),
-                    params,
-                )
-            ).all()
-        )
+            )
+        ).all()
+        por_sev: dict[str, int] = {str(r.severidade): int(r.count) for r in linhas_severidade}
+        linhas_status = (
+            await s.execute(
+                text(f"WITH q AS ({SELECT_BASE}) SELECT status, count(*) FROM q GROUP BY 1"),
+                params,
+            )
+        ).all()
+        por_status: dict[str, int] = {str(r.status): int(r.count) for r in linhas_status}
         ativas = (await s.execute(text("SELECT count(*) FROM sources WHERE ativa"))).scalar_one()
 
     return Estatisticas(
@@ -332,3 +371,90 @@ async def estatisticas(
 
 
 __all__ = ["router"]
+
+
+@router.get("/tiles/{z}/{x}/{y}.mvt", response_class=Response)
+async def tile_eventos(
+    z: int, x: int, y: int,
+    horas: Annotated[int, Query(ge=1, le=24 * 30)] = 24,
+    magnitude_minima: Annotated[float, Query(ge=0, le=10)] = MAGNITUDE_MINIMA_PADRAO,
+) -> Response:
+    """Tile vetorial dos eventos atuais; evita JSON massivo em visões globais."""
+    if not (0 <= z <= 22 and 0 <= x < 2**z and 0 <= y < 2**z):
+        raise HTTPException(422, "coordenada de tile inválida")
+    async with sessao() as s:
+        dado = (
+            await s.execute(
+                text(
+                    """
+                    WITH limites AS (SELECT ST_TileEnvelope(:z, :x, :y) AS geom),
+                    feicoes AS (
+                      SELECT v.id::text AS id, v.event_type AS tipo, v.magnitude,
+                             v.severidade, v.source_count AS fontes,
+                             ST_AsMVTGeom(ST_Transform(v.geom::geometry, 3857),
+                                          limites.geom, 4096, 64, true) AS geom
+                      FROM v_eventos_canonicos v, limites
+                      WHERE v.observed_at > now() - make_interval(hours => :horas)
+                        AND (v.magnitude IS NULL OR v.magnitude >= :mag_min)
+                        AND ST_Intersects(ST_Transform(v.geom::geometry, 3857), limites.geom)
+                    )
+                    SELECT ST_AsMVT(feicoes, 'eventos', 4096, 'geom') FROM feicoes
+                    """
+                ),
+                {"z": z, "x": x, "y": y, "horas": horas, "mag_min": magnitude_minima},
+            )
+        ).scalar_one()
+    return Response(content=bytes(dado or b""), media_type="application/vnd.mapbox-vector-tile")
+
+
+@router.websocket("/eventos/stream")
+async def eventos_stream(websocket: WebSocket) -> None:
+    """Deltas de eventos por polling do snapshot; reconecta usando `desde` ISO-8601."""
+    await websocket.accept()
+    desde_bruto = websocket.query_params.get("desde")
+    try:
+        # O padrão é AGORA, não o início dos tempos. Dois motivos:
+        #
+        # 1. Semântica: um fluxo ao vivo entrega o que mudou a partir da conexão.
+        #    Sem `desde`, o cliente é novo e não tem backlog a recuperar —
+        #    despejar 500 eventos históricos na abertura seria o oposto de "delta".
+        # 2. Correção: `datetime.min.astimezone()` levanta
+        #    `ValueError: year 0 is out of range` no Linux (a conversão passa por
+        #    `localtime()`, que não representa o ano 1). O except logo abaixo
+        #    engolia isso e fechava com 1008 — ou seja, TODA conexão sem `desde`
+        #    era recusada, que é o caso de toda primeira conexão de todo cliente.
+        desde = (
+            datetime.fromisoformat(desde_bruto) if desde_bruto else datetime.now(UTC)
+        )
+    except ValueError:
+        await websocket.close(code=1008, reason="parâmetro desde inválido")
+        return
+    try:
+        while True:
+            async with sessao() as s:
+                linhas = (
+                    await s.execute(
+                        text(
+                            """
+                            SELECT v.*, ST_Y(v.geom::geometry) AS lat,
+                                   ST_X(v.geom::geometry) AS lon
+                            FROM v_eventos_canonicos v
+                            WHERE v.atualizado_em > :desde
+                            ORDER BY v.atualizado_em, v.id
+                            LIMIT 500
+                            """
+                        ),
+                        {"desde": desde},
+                    )
+                ).all()
+            if linhas:
+                desde = max(r.atualizado_em for r in linhas)
+                await websocket.send_json(
+                    {"tipo": "delta", "desde": desde.isoformat(),
+                     "eventos": [_resumo(r).model_dump(mode="json") for r in linhas]}
+                )
+            else:
+                await websocket.send_json({"tipo": "heartbeat", "desde": desde.isoformat()})
+            await asyncio.sleep(5)
+    except WebSocketDisconnect:
+        return

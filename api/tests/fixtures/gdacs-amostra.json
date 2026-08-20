@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {"type": "Point", "coordinates": [120.6643, -8.1769]},
+      "properties": {
+        "eventtype": "EQ", "eventid": 1560289, "episodeid": 1727526,
+        "name": "Earthquake in Indonesia", "alertlevel": "Green", "alertscore": 1,
+        "country": "Indonesia", "fromdate": "2026-08-19T16:17:38",
+        "datemodified": "2026-08-19T18:24:22", "iso3": "IDN",
+        "source": "NEIC", "sourceid": "us6000tlxq", "glide": "",
+        "severitydata": {"severity": 5.5, "severitytext": "Magnitude 5.5M, Depth:10km"}
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {"type": "Polygon", "coordinates": [[[120,-8],[121,-8],[120,-8]]]},
+      "properties": {
+        "eventtype": "EQ", "eventid": 1560289, "episodeid": 1727526,
+        "fromdate": "2026-08-19T16:17:38", "datemodified": "2026-08-19T18:24:22"
+      }
+    }
+  ]
+}

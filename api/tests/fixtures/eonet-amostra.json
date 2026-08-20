@@ -1,0 +1,22 @@
+{
+  "title": "EONET Events",
+  "events": [
+    {
+      "id": "EONET_22931",
+      "title": "Wildfire Windmill, Stillwater, Montana",
+      "categories": [{"id": "wildfires", "title": "Wildfires"}],
+      "sources": [{"id": "IRWIN", "url": "https://irwin.doi.gov/observer/incidents/2026-MTLG32-261150"}],
+      "geometry": [
+        {"magnitudeValue": 900, "magnitudeUnit": "acres", "date": "2026-08-19T12:00:00Z", "type": "Point", "coordinates": [-109.5, 45.8]},
+        {"magnitudeValue": 1000, "magnitudeUnit": "acres", "date": "2026-08-19T18:05:00Z", "type": "Point", "coordinates": [-109.52349, 45.8358]}
+      ]
+    },
+    {
+      "id": "EONET_2",
+      "title": "Flood example",
+      "categories": [{"id": "floods", "title": "Floods"}],
+      "sources": [],
+      "geometry": [{"date": "2026-08-18T00:00:00Z", "type": "Polygon", "coordinates": [[[-50,-10],[-48,-10],[-48,-8],[-50,-8],[-50,-10]]]}]
+    }
+  ]
+}

@@ -54,6 +54,12 @@ class Config(BaseSettings):
 
     log_json: bool = True
 
+    # Escritas administrativas (como revisão humana) ficam fechadas por padrão.
+    # A API pública de leitura continua disponível sem credencial.
+    admin_api_key: str | None = None
+    rate_limit_por_minuto: int = Field(default=120, ge=1, le=100_000)
+    alert_webhook_url: str | None = None
+
     @property
     def database_url_async(self) -> str:
         return self.database_url

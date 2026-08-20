@@ -1,4 +1,4 @@
-"""A aplicação: operação em ``/saude``, produto em ``/eventos`` e ``/estatisticas``.
+"""A aplicação: operação em ``/saude``, produto sob ``/api``.
 
 Nenhum endpoint serve payload bruto de fonte. O conteúdo de fonte com
 ``redistribuicao = 'interna'`` é removido na serialização (ver
@@ -11,14 +11,15 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import text
 
-from clima.api import router_eventos
+from clima.api import router_eventos, router_revisao
 from clima.db import encerrar, sessao
 from clima.ingest import verificar
 from clima.ingest.parser import pendencia
 from clima.logs import configurar
+from clima.operacao import OperacaoMiddleware, metricas_prometheus
 
 
 @asynccontextmanager
@@ -34,9 +35,9 @@ app = FastAPI(
     lifespan=ciclo,
     description=(
         "Consolidação de eventos climáticos e desastres naturais. "
-        "**Sem deduplicação entre fontes ainda** — cada evento é o registro de uma "
-        "fonte só, e as respostas trazem `deduplicado: false`. O motor de "
-        "correlação é a Fase 2 do plano."
+        "Os eventos são canônicos e preservam procedência e divergências entre "
+        "USGS, EMSC e GDACS. `deduplicado: true` indica que o motor foi aplicado; "
+        "não equivale à aprovação estatística do portão G2."
     ),
 )
 # Prefixo /api não é enfeite: sem ele, o caminho da API colide com a rota do SPA.
@@ -45,6 +46,13 @@ app = FastAPI(
 # problema é o mesmo. Operação fica fora do prefixo (/saude) porque não colide com
 # rota nenhuma da interface.
 app.include_router(router_eventos, prefix="/api")
+app.include_router(router_revisao, prefix="/api")
+app.add_middleware(OperacaoMiddleware)
+
+
+@app.get("/metricas", include_in_schema=False)
+async def metricas() -> PlainTextResponse:
+    return PlainTextResponse(metricas_prometheus(), media_type="text/plain; version=0.0.4")
 
 
 @app.get("/saude")

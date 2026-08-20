@@ -308,3 +308,39 @@ async def test_fila_de_revisao_expoe_o_par_duvidoso(dono: AsyncEngine, semear) -
         assert linha.distancia_m > 0
         assert linha.score is not None
         assert "explicacao" in linha.features, "a fila precisa explicar por que duvidou"
+
+
+async def test_decisao_manual_prevalece_sobre_xref(dono: AsyncEngine, semear) -> None:  # noqa: ANN001
+    raw_id, fetched = await _raw(dono, semear)
+    agora = datetime.now(UTC) - timedelta(minutes=5)
+    a = await _inserir_registro(
+        dono, raw_id, fetched, fonte="usgs", evento="manual-a", lat=0, lon=0,
+        quando=agora, xrefs={"usgs": "comum"}
+    )
+    b = await _inserir_registro(
+        dono, raw_id, fetched, fonte="gdacs", evento="manual-b", lat=0.01, lon=0,
+        quando=agora, xrefs={"usgs": "comum"}
+    )
+    await correlacionar(horas=24)
+
+    async with dono.begin() as c:
+        await c.execute(
+            text(
+                """
+                UPDATE record_links SET metodo = 'manual', veredito = 'distinto',
+                  decidido_por = 'teste', features = features || '{"justificativa_manual":"revisado"}'
+                WHERE a_id = :a AND b_id = :b
+                """
+            ),
+            {"a": min(a, b), "b": max(a, b)},
+        )
+
+    await correlacionar(horas=24)
+    async with dono.connect() as c:
+        veredito = (
+            await c.execute(
+                text("SELECT veredito FROM record_links WHERE a_id = :a AND b_id = :b"),
+                {"a": min(a, b), "b": max(a, b)},
+            )
+        ).scalar_one()
+    assert veredito == "distinto"

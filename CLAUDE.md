@@ -30,9 +30,9 @@ meteorológico de uso geral (chuva de terça não é evento; enchente é).
 coletado a cada 60 s, analisado para `source_records` append-only, correlacionado em
 `canonical_events`, e servido em `/api/eventos`.
 
-Duas fontes de sismo ativas: **USGS** e **EMSC**. Entre elas não há identificador
-comum, então a correlação é probabilística — o caminho determinístico do §5.2 não
-dispara aqui.
+Três fontes de sismo ativas: **USGS**, **EMSC** e **GDACS**. USGS/EMSC não têm
+identificador comum e dependem de correlação probabilística; o GDACS carrega o ID
+NEIC/USGS e aciona o caminho determinístico do §5.2.
 
 **O portão G2 continua não atendido, e o motivo agora é de dados, não de código.**
 Medido em execução real: os dois catálogos se sobrepõem apenas na faixa global de

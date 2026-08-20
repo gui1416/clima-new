@@ -11,13 +11,14 @@ from __future__ import annotations
 
 from typing import Any
 
+import httpx
 from arq import cron
 from arq.connections import RedisSettings
 
 from clima.config import config
+from clima.correlation import correlacionar
 from clima.db import encerrar
 from clima.ingest import coletar_ativas, garantir_particoes, verificar
-from clima.correlation import correlacionar
 from clima.ingest.parser import analisar_pendentes
 from clima.logs import configurar, log
 
@@ -42,12 +43,24 @@ async def tarefa_particoes(ctx: dict[str, Any]) -> list[str]:
 
 async def tarefa_continuidade(ctx: dict[str, Any]) -> dict[str, Any]:
     rel = await verificar()
-    return {
+    resultado = {
         "saudavel": rel.saudavel,
         "lacunas": len(rel.lacunas),
         "silenciosas": [s.source_id for s in rel.silenciosas],
         "linhas_na_default": rel.linhas_na_default,
     }
+    cfg = config()
+    redis = ctx.get("redis")
+    if not rel.saudavel and cfg.alert_webhook_url and redis is not None:
+        primeira = await redis.set("alerta:continuidade", "1", ex=900, nx=True)
+        if primeira:
+            try:
+                async with httpx.AsyncClient(timeout=cfg.http_timeout_seg) as cliente:
+                    resposta = await cliente.post(cfg.alert_webhook_url, json=resultado)
+                    resposta.raise_for_status()
+            except Exception as exc:  # noqa: BLE001
+                _log.error("webhook_continuidade_falhou", erro=str(exc))
+    return resultado
 
 
 async def ao_iniciar(ctx: dict[str, Any]) -> None:

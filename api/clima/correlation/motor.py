@@ -161,6 +161,22 @@ async def correlacionar(horas: int = 48) -> Relatorio:
             (r.a_id, r.b_id)
             for r in (await s.execute(text(SQL_CANDIDATOS), {"horas": horas})).all()
         ]
+        manuais = {
+            (r.a_id, r.b_id): r
+            for r in (
+                await s.execute(
+                    text(
+                        """
+                        SELECT a_id, b_id, veredito, score, features, decidido_por
+                        FROM record_links
+                        WHERE metodo = 'manual'
+                          AND a_id = ANY(:ids) AND b_id = ANY(:ids)
+                        """
+                    ),
+                    {"ids": list(registros)},
+                )
+            ).all()
+        }
 
     rel.registros = len(registros)
     rel.candidatos = len(candidatos)
@@ -175,6 +191,21 @@ async def correlacionar(horas: int = 48) -> Relatorio:
         if p is None:
             # Tipo sem parâmetros calibrados: não adivinhar. Fica sem vínculo, e o
             # registro segue como evento próprio.
+            continue
+
+        if manual := manuais.get((a_id, b_id)):
+            vinculos.append(
+                {
+                    "a_id": a_id,
+                    "b_id": b_id,
+                    "metodo": "manual",
+                    "veredito": manual.veredito,
+                    "score": manual.score,
+                    "features": dict(manual.features or {}),
+                }
+            )
+            if manual.veredito == "mesmo":
+                pares_mesmo.append((a_id, b_id))
             continue
 
         if identificadores(a) & identificadores(b):
@@ -196,20 +227,20 @@ async def correlacionar(horas: int = 48) -> Relatorio:
 
         f = extrair(a, b, p)
         sc = score(f, p)
-        v = veredito(sc, p)
+        veredito_modelo = veredito(sc, p)
         vinculos.append(
             {
                 "a_id": a_id,
                 "b_id": b_id,
                 "metodo": "probabilistico",
-                "veredito": v,
+                "veredito": veredito_modelo,
                 "score": round(sc, 5),
                 "features": f.como_dict() | {"explicacao": explicar(f, p)},
             }
         )
-        if v == "mesmo":
+        if veredito_modelo == "mesmo":
             pares_mesmo.append((a_id, b_id))
-        elif v == "incerto":
+        elif veredito_modelo == "incerto":
             rel.incertos += 1
 
     # ── clusters, por tipo, com guarda de diâmetro ──────────────────────────

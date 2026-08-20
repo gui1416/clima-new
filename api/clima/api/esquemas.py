@@ -94,6 +94,42 @@ class Pagina(BaseModel):
     # significa que o portão G2 foi atendido — significa que houve consolidação.
     deduplicado: bool = True
     aviso: str | None = None
+    proximo_cursor: str | None = None
+
+
+class ItemRevisao(BaseModel):
+    a_id: int
+    b_id: int
+    score: float | None
+    features: dict[str, Any]
+    fonte_a: str
+    evento_a: str
+    mag_a: float | None
+    fonte_b: str
+    evento_b: str
+    mag_b: float | None
+    distancia_m: float
+    delta_seg: float
+    decidido_em: datetime
+
+
+class PaginaRevisao(BaseModel):
+    total: int
+    itens: list[ItemRevisao]
+
+
+class DecisaoRevisao(BaseModel):
+    veredito: Literal["mesmo", "distinto"]
+    revisor: str = Field(min_length=2, max_length=120)
+    justificativa: str = Field(min_length=3, max_length=1000)
+
+
+class RevisaoRegistrada(BaseModel):
+    a_id: int
+    b_id: int
+    veredito: Literal["mesmo", "distinto"]
+    revisor: str
+    decidido_em: datetime
 
 
 class Estatisticas(BaseModel):
