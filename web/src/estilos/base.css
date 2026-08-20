@@ -54,54 +54,133 @@ a {
   white-space: nowrap;
 }
 
+/* ── ícones ────────────────────────────────────────────────────────────── */
+
+/* Traço, não preenchimento — é o que dá ao conjunto a aparência do protótipo.
+   `currentColor` faz o ícone herdar a tinta do controle, então estado (hover,
+   ativo, desabilitado) se resolve numa regra só, no pai. */
+.icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon.sm {
+  width: 15px;
+  height: 15px;
+}
+
+.icon.lg {
+  width: 21px;
+  height: 21px;
+}
+
 /* ── estrutura ─────────────────────────────────────────────────────────── */
 
 .app {
   display: grid;
-  grid-template-columns: var(--largura-sidebar) 1fr;
+  grid-template-columns: var(--largura-sidebar) minmax(0, 1fr);
   height: 100%;
 }
 
 .sidebar {
   display: flex;
+  min-height: 0;
   flex-direction: column;
-  gap: 4px;
-  padding: 18px 12px;
   border-right: 1px solid var(--border);
   background: var(--sidebar);
-  overflow-y: auto;
 }
 
 .marca {
   display: flex;
+  height: var(--altura-topbar);
+  flex: 0 0 auto;
   align-items: center;
-  gap: 9px;
-  padding: 0 8px 18px;
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  gap: 12px;
+  padding: 0 var(--e-3);
+  border-bottom: 1px solid var(--border);
 }
 
-.marca i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--critical);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--critical), transparent 78%);
+/* O selo do protótipo: bloco sólido em tinta de texto, letra apertada. Não é
+   logotipo de terceiro — é composto com os mesmos tokens do resto. */
+.marca-selo {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border: 1px solid var(--text);
+  background: var(--text);
+  color: var(--inverse);
+  /* Fixo de propósito: o selo tem 38px de lado, e uma letra fluida dentro de uma
+     caixa fixa transborda no extremo superior da escala. */
+  font-size: 14px;
+  font-weight: 950;
+  letter-spacing: -0.07em;
+  place-items: center;
+}
+
+.marca-texto {
+  min-width: 0;
+}
+
+.marca-texto strong,
+.marca-texto small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marca-texto strong {
+  font-size: var(--t-corpo);
+  letter-spacing: -0.02em;
+}
+
+.marca-texto small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: var(--t-micro);
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.nav-rolagem {
+  min-height: 0;
+  flex: 1;
+  padding: var(--e-4) var(--e-2);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .nav-item {
+  position: relative;
   display: flex;
+  min-height: 43px;
   align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
+  gap: 11px;
+  padding: 0 11px;
   border: 0;
-  border-radius: var(--r);
+  border-radius: 7px;
   background: transparent;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 550;
   text-align: left;
+  transition: background 0.16s var(--ease), color 0.16s var(--ease);
+}
+
+.nav-item > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--t-corpo);
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-item:hover {
@@ -114,17 +193,119 @@ a {
   color: var(--text);
 }
 
+/* Marca de rota ativa do protótipo. Fica na sangria do padding da lista, então
+   não empurra o rótulo nem depende de `border-left` (que mudaria a caixa). */
+.nav-item[aria-current="page"]::before {
+  position: absolute;
+  left: calc(var(--e-2) * -1);
+  width: 2px;
+  height: 23px;
+  background: var(--text);
+  content: "";
+}
+
+.nav-conta {
+  display: grid;
+  min-width: 24px;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: var(--t-mini);
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  place-items: center;
+}
+
 .nav-rotulo {
-  padding: 16px 10px 6px;
+  padding: var(--e-4) 10px 9px;
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: var(--t-mini);
+  font-weight: 800;
+  letter-spacing: 0.15em;
+}
+
+.nav-rolagem > div:first-child .nav-rotulo {
+  padding-top: 0;
+}
+
+.sidebar-rodape {
+  flex: 0 0 auto;
+  padding: var(--e-2);
+  border-top: 1px solid var(--border);
+}
+
+/* No protótipo este canto trazia um perfil de usuário fictício. O produto não
+   tem autenticação, e dado falso não declarado como falso é proibido pelo
+   CLAUDE.md — então o espaço recebe o que existe de verdadeiro e é o mais caro
+   de descobrir tarde: o estado da coleta. */
+.estado-coleta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.estado-coleta:hover {
+  border-color: var(--border-2);
+  background: var(--surface-3);
+}
+
+.estado-coleta > span {
+  min-width: 0;
+  flex: 1;
+}
+
+.estado-coleta strong,
+.estado-coleta small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.estado-coleta strong {
+  color: var(--text);
+  font-size: var(--t-menor);
   font-weight: 650;
-  letter-spacing: 0.09em;
+}
+
+.estado-coleta small {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: var(--t-mini);
+}
+
+/* Símbolo e rótulo já distinguem os estados; a cor só reforça. */
+.estado-coleta > i {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--estado-inerte);
+}
+
+.estado-coleta.estado-ok > i {
+  background: var(--estado-ok);
+}
+
+.estado-coleta.estado-atencao > i {
+  background: var(--estado-bloqueado);
+}
+
+.estado-coleta.estado-atencao {
+  border-color: color-mix(in srgb, var(--estado-bloqueado), transparent 62%);
 }
 
 .area {
   display: flex;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
 }
 
@@ -133,37 +314,144 @@ a {
   height: var(--altura-topbar);
   flex: 0 0 auto;
   align-items: center;
-  gap: 14px;
-  padding: 0 22px;
+  gap: var(--e-3);
+  padding: 0 var(--e-4);
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
-.topbar h1 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 620;
+.topo-esquerda {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--e-2);
 }
 
-.espacador {
+.topo-acoes {
+  display: flex;
+  min-width: 0;
   flex: 1;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--e-2);
 }
 
-.pilula {
+/* Trilha do protótipo: o prefixo é contexto fixo, o rótulo da rota é o dado. */
+.trilha {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--t-menor);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trilha span {
+  color: var(--muted-2);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.trilha strong {
+  margin-left: 5px;
+  font-size: var(--t-corpo);
+  font-weight: 650;
+}
+
+/* Três estados, e o "sem fluxo" é o que justifica o componente: uma pílula de
+   dois estados escreveria "ao vivo" sobre um socket caído. */
+.pilula-fluxo {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 5px 11px;
-  border: 1px solid var(--border-2);
+  padding: 6px 11px;
+  border: 1px solid color-mix(in srgb, var(--ok), transparent 68%);
   border-radius: 999px;
+  background: color-mix(in srgb, var(--ok), transparent 90%);
+  color: var(--ok);
+  font-size: var(--t-mini);
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.pilula-fluxo .ponto {
+  background: currentColor;
+}
+
+.pilula-fluxo.fluxo-ao-vivo .ponto {
+  animation: pulsar-ponto 2.4s var(--ease) infinite;
+}
+
+.pilula-fluxo.fluxo-conectando {
+  border-color: var(--border-2);
+  background: var(--surface-2);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 550;
+}
+
+.pilula-fluxo.fluxo-offline {
+  border-color: color-mix(in srgb, var(--high), transparent 62%);
+  background: color-mix(in srgb, var(--high), transparent 90%);
+  color: var(--high);
+}
+
+@keyframes pulsar-ponto {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.28; }
+}
+
+.pilula-fontes {
+  color: var(--muted);
+  font-size: var(--t-mini);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Botão de busca do protótipo: campo aparente que abre a paleta, com o atalho
+   impresso. O `kbd` é a única pista de que ⌘K existe. */
+.abrir-busca {
+  display: flex;
+  min-width: 0;
+  max-width: 320px;
+  height: 36px;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 9px;
+  padding: 0 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.abrir-busca:hover {
+  border-color: var(--muted-2);
+  color: var(--text);
+}
+
+.abrir-busca > span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: var(--t-menor);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+kbd {
+  padding: 2px 6px;
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--muted-2);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
 }
 
 .ponto {
   width: 7px;
   height: 7px;
+  flex: 0 0 auto;
   border-radius: 50%;
   background: var(--ok);
 }
@@ -182,17 +470,31 @@ a {
   display: grid;
   width: 34px;
   height: 34px;
+  flex: 0 0 auto;
   border: 1px solid var(--border-2);
   border-radius: var(--r);
   background: var(--surface-2);
+  color: var(--muted);
   place-items: center;
-  font-size: 14px;
+}
+
+.btn-icone:hover {
+  border-color: var(--muted-2);
+  color: var(--text);
+}
+
+.abrir-menu,
+.fechar-menu,
+.scrim-menu,
+.buscar-compacto {
+  display: none;
 }
 
 .conteudo {
   min-height: 0;
   flex: 1;
   overflow: auto;
+  overscroll-behavior-y: contain;
 }
 
 .conteudo.sem-rolagem {
@@ -200,15 +502,566 @@ a {
 }
 
 .pagina {
-  padding: 24px 22px;
+  width: 100%;
+  max-width: var(--largura-pagina);
+  margin: 0 auto;
+  padding: var(--e-5) var(--e-4) var(--e-6);
+}
+
+/* ── cabeçalho de tela ─────────────────────────────────────────────────── */
+
+.cabecalho-tela {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--e-4);
+  margin-bottom: var(--e-4);
+}
+
+.cabecalho-tela-copy {
+  min-width: 0;
+}
+
+.linha-selo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* O chip de contexto do protótipo. Contorno, não preenchimento: ele rotula a
+   tela, e um bloco sólido competiria com o título logo abaixo. */
+.selo-tela {
+  padding: 4px 8px;
+  border: 1px solid var(--border-2);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: var(--t-micro);
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.contexto-tela {
+  color: var(--muted);
+  font-size: var(--t-mini);
+  font-variant-numeric: tabular-nums;
+}
+
+.cabecalho-tela h2 {
+  margin: var(--e-2) 0 4px;
+  font-size: var(--t-titulo);
+  font-weight: 640;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.cabecalho-tela p {
+  max-width: 68ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--t-menor);
+}
+
+.acao-principal {
+  display: inline-flex;
+  min-height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 14px;
+  border: 1px solid var(--text);
+  border-radius: var(--r);
+  background: var(--text);
+  color: var(--inverse);
+  font-size: var(--t-mini);
+  font-weight: 700;
+  text-align: center;
+}
+
+.acao-principal:hover {
+  background: color-mix(in srgb, var(--text), var(--bg) 12%);
+}
+
+/* Botão de alternância que também é ação principal (o filtro multifonte): sem o
+   estado invertido, "ligado" e "desligado" ficariam idênticos. */
+.acao-principal[aria-pressed="false"] {
+  border-color: var(--border-2);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.acao-principal[aria-pressed="false"]:hover {
+  border-color: var(--muted-2);
+  color: var(--text);
+}
+
+.sobretitulo {
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: 0.11em;
+}
+
+/* ── paleta de comandos (⌘K) ───────────────────────────────────────────── */
+
+.scrim-paleta {
+  position: fixed;
+  z-index: 100;
+  display: block;
+  border: 0;
+  background: color-mix(in srgb, var(--bg), transparent 30%);
+  inset: 0;
+  backdrop-filter: blur(3px);
+}
+
+.paleta {
+  position: fixed;
+  z-index: 110;
+  top: max(8vh, 44px);
+  left: 50%;
+  width: min(600px, calc(100% - 28px));
+  overflow: hidden;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+}
+
+.paleta-busca {
+  display: flex;
+  height: 54px;
+  align-items: center;
+  gap: 10px;
+  padding: 0 var(--e-3);
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.paleta-busca input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--t-corpo);
+}
+
+.paleta-resultados {
+  /* Teto em `dvh` para que a lista não estoure a janela do celular deitado, onde
+     440px fixos passariam da altura útil inteira. */
+  max-height: min(440px, 60dvh);
+  padding: 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.paleta-rotulo {
+  padding: 8px;
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.paleta-item {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+}
+
+.paleta-item.focado,
+.paleta-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.paleta-item > span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: var(--t-menor);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paleta-item > small {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--muted-2);
+  font-size: var(--t-mini);
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paleta-vazio {
+  margin: 0;
+  padding: var(--e-4) 10px;
+  color: var(--muted-2);
+  font-size: var(--t-menor);
 }
 
 /* ── mapa ──────────────────────────────────────────────────────────────── */
 
 .mapa-raiz {
   position: relative;
-  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
   background: var(--ocean);
+  /* Consultas de contêiner: os flutuantes reagem à largura do MAPA, não à da
+     janela. Com a barra de filtros aberta num laptop de 1280 px o mapa tem os
+     mesmos ~900 px que teria num tablet sem barra — e é a largura do mapa que
+     decide se as abas de estilo cabem, não a do dispositivo. */
+  container: mapa / inline-size;
+}
+
+.mapa-raiz.tela-cheia {
+  border: 0;
+  border-radius: 0;
+}
+
+.mapa-pagina {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  padding: var(--e-4);
+  overflow-y: auto;
+}
+
+.cabecalho-mapa-pagina {
+  width: 100%;
+  max-width: var(--largura-pagina);
+  flex: 0 0 auto;
+  margin: 0 auto var(--e-4);
+}
+
+/* A altura do mapa é o resto da página, com piso — e não `calc(100dvh - 330px)`,
+   que era a soma à mão das alturas do topo, do cabeçalho e da faixa. Bastava um
+   título quebrar em duas linhas para o número mentir; em janela baixa ele chegava
+   a ficar negativo. O piso em `dvh` mantém o mapa utilizável em celular deitado,
+   e o que não couber faz a página rolar em vez de esmagar o canvas. */
+.layout-mapa-operacional {
+  display: grid;
+  width: 100%;
+  max-width: var(--largura-pagina);
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: clamp(236px, 19vi, 296px) minmax(0, 1fr);
+  grid-template-rows: minmax(clamp(280px, 46dvh, 560px), 1fr) auto;
+  gap: var(--e-2);
+  margin: 0 auto;
+}
+
+/* ── flutuantes do mapa ────────────────────────────────────────────────── */
+
+.mapa-flutuante-topo-esquerda,
+.mapa-flutuante-topo-direita {
+  position: absolute;
+  z-index: 3;
+  top: var(--e-2);
+  display: flex;
+  max-width: calc(50% - var(--e-3));
+  align-items: start;
+  gap: var(--e-2);
+}
+
+.mapa-flutuante-topo-esquerda {
+  left: var(--e-2);
+  flex-direction: column;
+}
+
+.mapa-flutuante-topo-direita {
+  right: calc(var(--e-2) + 42px);
+}
+
+.busca-mapa {
+  display: flex;
+  width: min(260px, 44cqi);
+  height: 34px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--surface), transparent 6%);
+  box-shadow: var(--shadow-sm);
+  color: var(--muted);
+  backdrop-filter: blur(14px);
+}
+
+.busca-mapa input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: var(--t-mini);
+}
+
+.busca-mapa button {
+  display: grid;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  place-items: center;
+}
+
+/* Abas de base do protótipo: Pontilhado | Contorno | Sólido. */
+.abas-base {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--surface), transparent 6%);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(14px);
+}
+
+.abas-base button {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--t-mini);
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.abas-base button[aria-selected="true"] {
+  background: var(--surface-3);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+}
+
+.envolve-camadas {
+  position: relative;
+}
+
+.btn-mapa {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--surface), transparent 6%);
+  box-shadow: var(--shadow-sm);
+  color: var(--muted);
+  place-items: center;
+  backdrop-filter: blur(14px);
+}
+
+.btn-mapa:hover,
+.btn-mapa[aria-expanded="true"] {
+  color: var(--text);
+}
+
+.popover-camadas {
+  position: absolute;
+  z-index: 4;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  width: 208px;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.popover-camadas button {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--t-menor);
+  text-align: left;
+}
+
+.popover-camadas button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Interruptor: a posição do polegar carrega o estado, não só a cor — em escala de
+   cinza a diferença continua legível. */
+.popover-camadas button > i,
+.chave-mapa > i {
+  position: relative;
+  width: 30px;
+  height: 17px;
+  flex: 0 0 auto;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  background: var(--surface-3);
+  transition: background 0.16s var(--ease);
+}
+
+.popover-camadas button > i::after,
+.chave-mapa > i::after {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--muted);
+  content: "";
+  transition: transform 0.16s var(--ease), background 0.16s var(--ease);
+}
+
+.popover-camadas button[aria-checked="true"] > i,
+.chave-mapa[aria-checked="true"] > i {
+  border-color: var(--text);
+  background: var(--text);
+}
+
+.popover-camadas button[aria-checked="true"] > i::after,
+.chave-mapa[aria-checked="true"] > i::after {
+  background: var(--inverse);
+  transform: translateX(13px);
+}
+
+.pilha-zoom {
+  position: absolute;
+  z-index: 3;
+  top: var(--e-2);
+  right: var(--e-2);
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--surface), transparent 6%);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(14px);
+}
+
+.pilha-zoom button {
+  display: grid;
+  width: 34px;
+  height: 32px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  place-items: center;
+}
+
+.pilha-zoom button:last-child {
+  border-bottom: 0;
+}
+
+.pilha-zoom button:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.legenda-mapa {
+  bottom: var(--e-2);
+  left: var(--e-2);
+  display: flex;
+  max-width: calc(100% - var(--e-4));
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--e-1) var(--e-3);
+  padding: 8px 11px;
+  font-size: var(--t-mini);
+}
+
+.legenda-mapa span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.legenda-mapa b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Faixa desligada continua legível, e o `line-through` diz por quê — opacidade
+   sozinha leria como "sem eventos" em vez de "oculto pelo filtro". */
+.legenda-mapa span.apagada {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.leitura-mapa {
+  right: var(--e-2);
+  bottom: var(--e-2);
+  display: flex;
+  align-items: center;
+  gap: var(--e-3);
+  padding: 7px 11px;
+  color: var(--muted-2);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+}
+
+.leitura-mapa b {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.regua {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.regua i {
+  width: 40px;
+  height: 6px;
+  border: 1px solid var(--muted-2);
+  border-top: 0;
+}
+
+/* Abaixo de ~560 px de MAPA (não de janela) as abas de estilo e a leitura de
+   coordenadas passam a disputar espaço com a legenda, que é a única das três sem
+   substituto — o estilo tem o popover, a coordenada não decide nada. */
+@container mapa (max-width: 560px) {
+  .abas-base,
+  .leitura-mapa {
+    display: none;
+  }
+
+  .mapa-flutuante-topo-direita {
+    right: calc(var(--e-2) + 40px);
+  }
+}
+
+@container mapa (max-width: 360px) {
+  .busca-mapa {
+    display: none;
+  }
 }
 
 .mapa-canvas {
@@ -226,8 +1079,8 @@ a {
      do lugar, e só ele saía do canvas. Os outros 16 erravam em silêncio, num mapa
      que parecia plausível. */
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: var(--tamanho-marcador, 18px);
+  height: var(--tamanho-marcador, 18px);
   border: 0;
   border-radius: 50%;
   background: transparent;
@@ -239,7 +1092,7 @@ a {
   border-radius: 50%;
   background: currentColor;
   content: "";
-  inset: 3px;
+  inset: 4px;
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--ocean), transparent 30%);
 }
 
@@ -250,6 +1103,60 @@ a {
   content: "";
   inset: 0;
   animation: pulso 2.4s var(--ease) infinite;
+}
+
+.marcador.multifonte::before {
+  border: 2px solid var(--text);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ocean), transparent 18%);
+}
+
+.marcador-tooltip {
+  position: absolute;
+  z-index: 4;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  display: none;
+  width: 210px;
+  padding: 10px 11px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--surface), transparent 2%);
+  box-shadow: var(--shadow-md);
+  color: var(--text);
+  pointer-events: none;
+  text-align: left;
+  transform: translateX(-50%);
+}
+
+.marcador-tooltip b,
+.marcador-tooltip span,
+.marcador-tooltip small {
+  display: block;
+}
+
+.marcador-tooltip b {
+  margin-bottom: 3px;
+  font-size: var(--t-menor);
+  font-variant-numeric: tabular-nums;
+}
+
+.marcador-tooltip span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--t-mini);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.marcador-tooltip small {
+  margin-top: 5px;
+  color: var(--muted-2);
+  font-size: var(--t-mini);
+}
+
+.marcador:hover .marcador-tooltip,
+.marcador:focus-visible .marcador-tooltip {
+  display: block;
 }
 
 .marcador.critical {
@@ -297,83 +1204,409 @@ a {
   backdrop-filter: blur(14px);
 }
 
-.legenda {
-  bottom: 18px;
-  left: 18px;
-  display: flex;
-  gap: 2px;
-  padding: 5px;
+.painel-mapa {
+  grid-row: 1 / 3;
+  width: auto;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
 }
 
-.legenda button {
+.painel-mapa-cabecalho {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.painel-mapa-cabecalho h2 {
+  margin: 3px 0 0;
+  font-size: var(--t-titulo-cartao);
+  letter-spacing: -0.02em;
+}
+
+.estado-mapa {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 10px;
-  border: 0;
-  border-radius: var(--r-sm);
-  background: transparent;
+  gap: 5px;
+  padding-top: 3px;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--t-micro);
+  white-space: nowrap;
 }
 
-.legenda button[aria-pressed="true"] {
+.estado-mapa i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.estado-mapa.com-erro i {
+  background: var(--high);
+}
+
+.mapa-kpis {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 14px 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--border);
+}
+
+.mapa-kpis div {
+  min-width: 0;
+  padding: 10px 8px;
+  background: var(--surface-2);
+}
+
+.mapa-kpis strong,
+.mapa-kpis span {
+  display: block;
+}
+
+.mapa-kpis strong {
+  font-size: var(--t-titulo-cartao);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.mapa-kpis span {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.grupo-controle-mapa > span {
+  display: block;
+  margin: 13px 0 6px;
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.segmentado-mapa {
+  display: grid;
+  gap: 2px;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 3px;
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+
+.segmentado-mapa button,
+.filtros-mapa button,
+.acao-mapa,
+.alternar-resumo {
+  border: 0;
+  color: var(--muted);
+}
+
+.segmentado-mapa button {
+  min-height: 30px;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: var(--t-mini);
+  font-weight: 650;
+}
+
+.segmentado-mapa button[aria-pressed="true"] {
   background: var(--surface-3);
+  box-shadow: var(--shadow-sm);
   color: var(--text);
 }
 
-.legenda b {
+.filtros-mapa {
+  display: grid;
+  gap: 4px;
+}
+
+.filtros-mapa button {
+  display: grid;
+  align-items: center;
+  gap: 9px;
+  grid-template-columns: 14px 1fr auto;
+  min-height: 40px;
+  padding: 6px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--r);
+  background: transparent;
+  text-align: left;
+}
+
+.filtros-mapa button[aria-pressed="true"] {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.filtros-mapa button[aria-pressed="false"] {
+  opacity: 0.48;
+  text-decoration: line-through;
+}
+
+.filtros-mapa button span,
+.filtros-mapa button small {
+  display: block;
+}
+
+.filtros-mapa button b {
+  font-size: var(--t-mini);
+}
+
+.filtros-mapa button small {
+  margin-top: 1px;
   color: var(--muted-2);
+  font-size: var(--t-micro);
+}
+
+.filtros-mapa button strong {
+  font-size: var(--t-menor);
   font-variant-numeric: tabular-nums;
 }
 
-.contador {
-  top: 18px;
-  left: 18px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 600;
+.simbolo-severidade {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
 }
 
-.cartao-evento {
-  top: 18px;
-  right: 18px;
-  width: 306px;
-  padding: 16px;
-}
+.simbolo-severidade.critical { color: var(--critical); }
+.simbolo-severidade.high { color: var(--high); border-radius: 2px; transform: rotate(45deg); }
+.simbolo-severidade.moderate { color: var(--moderate); border-radius: 1px; }
 
-.cartao-evento header {
+.ajuda-mapa {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 10px;
+  margin: 12px 0;
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 650;
-  letter-spacing: 0.07em;
+  font-size: var(--t-mini);
+  line-height: 1.35;
 }
+
+.anel-multifonte {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--moderate);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--text);
+}
+
+.acao-mapa {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 11px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: var(--t-mini);
+  font-weight: 650;
+}
+
+.alternar-resumo {
+  display: none;
+}
+
+.dica-mapa {
+  margin: 14px 0 0;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface-2);
+}
+
+.dica-mapa b,
+.dica-mapa span {
+  display: block;
+}
+
+.dica-mapa b {
+  margin-bottom: 4px;
+  font-size: var(--t-mini);
+}
+
+.dica-mapa span {
+  color: var(--muted);
+  font-size: var(--t-mini);
+  line-height: 1.45;
+}
+
+/* Fica dentro de `.mapa-flutuante-topo-esquerda`, que já é o elemento
+   posicionado — herdar o `absolute` de `.flutuante` o tiraria da coluna. */
+.badge-mapa {
+  position: static;
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--t-mini);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge-mapa b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.faixa-eventos-mapa {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.faixa-eventos-mapa > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+.faixa-eventos-mapa h2 {
+  margin: 0;
+  font-size: var(--t-corpo);
+}
+
+.faixa-eventos-mapa header span {
+  color: var(--muted);
+  font-size: var(--t-mini);
+  font-variant-numeric: tabular-nums;
+}
+
+.lista-eventos-mapa {
+  display: flex;
+  gap: 9px;
+  padding: 11px 14px 13px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+
+.lista-eventos-mapa > button {
+  display: flex;
+  flex: 0 0 238px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: start;
+  gap: 5px;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  color: var(--text);
+  scroll-snap-align: start;
+  text-align: left;
+}
+
+.lista-eventos-mapa > button:hover,
+.lista-eventos-mapa > button.selecionado {
+  border-color: var(--border-2);
+  background: var(--surface-3);
+}
+
+.lista-eventos-mapa > button.selecionado {
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
+.lista-eventos-mapa button > strong {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: var(--t-menor);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista-eventos-mapa button > small {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--t-mini);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rotulo-evento-mapa {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-micro);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.meta-evento-mapa {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+  font-variant-numeric: tabular-nums;
+}
+
+.meta-evento-mapa b {
+  color: var(--text);
+}
+
+/* A caixa do cartão vem de `.drawer-content.cartao-evento`, no fim do arquivo.
+   Aqui ficam só o conteúdo e a rolagem interna. */
+.cartao-evento-corpo {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--border-2) transparent;
+  scrollbar-width: thin;
+  touch-action: pan-y;
+}
+
+.cartao-evento-corpo::-webkit-scrollbar { width: 6px; }
+.cartao-evento-corpo::-webkit-scrollbar-thumb { border-radius: 999px; background: var(--border-2); }
 
 .cartao-evento h2 {
   margin: 0 0 3px;
-  font-size: 15px;
+  font-size: var(--t-medio);
   font-weight: 620;
 }
 
 .cartao-evento .local {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-menor);
 }
 
 .cartao-evento p {
   margin: 0 0 13px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-menor);
   line-height: 1.5;
+}
+
+.cartao-evento .explicacao-evento {
+  padding: 9px 10px;
+  border-left: 2px solid currentColor;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--t-mini);
 }
 
 .metricas {
@@ -393,13 +1626,13 @@ a {
 .metrica span {
   display: block;
   color: var(--muted-2);
-  font-size: 9px;
+  font-size: var(--t-micro);
   font-weight: 650;
   letter-spacing: 0.07em;
 }
 
 .metrica strong {
-  font-size: 15px;
+  font-size: var(--t-medio);
   font-variant-numeric: tabular-nums;
 }
 
@@ -415,7 +1648,7 @@ a {
   border-radius: 999px;
   color: var(--muted);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--t-mini);
 }
 
 .aviso-demo {
@@ -426,7 +1659,7 @@ a {
   border-radius: var(--r-sm);
   background: var(--surface-2);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-menor);
   line-height: 1.5;
 }
 
@@ -440,28 +1673,28 @@ a {
 
 .vazio h2 {
   margin: 0 0 8px;
-  font-size: 16px;
+  font-size: var(--t-medio);
 }
 
 .vazio p {
   max-width: 46ch;
   margin: 0 auto;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--t-corpo);
   line-height: 1.6;
 }
 
 .tabela {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--t-corpo);
 }
 
 .tabela th {
   padding: 9px 12px;
   border-bottom: 1px solid var(--border);
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: var(--t-mini);
   font-weight: 650;
   letter-spacing: 0.07em;
   text-align: left;
@@ -470,6 +1703,30 @@ a {
 .tabela td {
   padding: 11px 12px;
   border-bottom: 1px solid var(--border);
+}
+
+.evento-nome,
+.evento-id {
+  display: block;
+}
+
+.evento-nome {
+  font-weight: 620;
+}
+
+.evento-id {
+  margin-top: 2px;
+  color: var(--muted-2);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+}
+
+.selo-severidade {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .tabela tbody tr:hover {
@@ -494,7 +1751,7 @@ a {
 .atualizado {
   margin-left: auto;
   color: var(--muted-2);
-  font-size: 11px;
+  font-size: var(--t-mini);
   font-variant-numeric: tabular-nums;
 }
 
@@ -516,7 +1773,7 @@ a {
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-menor);
   font-weight: 600;
 }
 
@@ -530,7 +1787,7 @@ a {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-menor);
 }
 
 .campo input {
@@ -561,13 +1818,13 @@ a {
 
 .painel span {
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: var(--t-mini);
   font-weight: 650;
   letter-spacing: 0.07em;
 }
 
 .painel strong {
-  font-size: 25px;
+  font-size: var(--t-numero);
   font-weight: 620;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -575,7 +1832,7 @@ a {
 
 .painel small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--t-mini);
 }
 
 .duas-colunas {
@@ -594,7 +1851,7 @@ a {
 
 .cartao h2 {
   margin: 0 0 14px;
-  font-size: 13px;
+  font-size: var(--t-corpo);
   font-weight: 620;
 }
 
@@ -604,7 +1861,7 @@ a {
   gap: 11px;
   grid-template-columns: 150px 1fr 42px;
   margin-bottom: 9px;
-  font-size: 12px;
+  font-size: var(--t-menor);
 }
 
 .barra-linha span {
@@ -643,7 +1900,7 @@ a {
 .nota {
   margin: 12px 0 0;
   color: var(--muted-2);
-  font-size: 11px;
+  font-size: var(--t-mini);
   line-height: 1.55;
 }
 
@@ -653,7 +1910,35 @@ a {
   border: 1px solid var(--high);
   border-radius: var(--r-sm);
   color: var(--high);
-  font-size: 12px;
+  font-size: var(--t-menor);
+}
+
+.estado-carregando {
+  display: flex;
+  min-height: 180px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px dashed var(--border-2);
+  border-radius: var(--r-md);
+  color: var(--muted);
+}
+
+.estado-carregando i {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-2);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+}
+
+@keyframes girar {
+  to { transform: rotate(360deg); }
+}
+
+.erro-detalhe {
+  color: var(--high) !important;
 }
 
 .alerta-inline {
@@ -681,7 +1966,7 @@ a {
 .proc-titulo {
   margin-bottom: 9px;
   color: var(--muted-2);
-  font-size: 9px;
+  font-size: var(--t-micro);
   font-weight: 650;
   letter-spacing: 0.07em;
 }
@@ -691,7 +1976,7 @@ a {
   justify-content: space-between;
   gap: 10px;
   margin-bottom: 7px;
-  font-size: 11px;
+  font-size: var(--t-mini);
 }
 
 .proc-linha strong {
@@ -706,7 +1991,7 @@ a {
 .proc-nota {
   margin: 10px 0 0;
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: var(--t-mini);
   line-height: 1.5;
 }
 
@@ -718,12 +2003,12 @@ a {
   gap: 8px;
   grid-template-columns: 92px 1fr;
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: var(--t-mini);
 }
 
 .proc-campo > span {
   color: var(--muted-2);
-  font-size: 10px;
+  font-size: var(--t-mini);
 }
 
 .proc-campo > div {
@@ -756,7 +2041,7 @@ a {
 .proc-campo b i {
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--t-micro);
   font-style: normal;
 }
 
@@ -835,7 +2120,7 @@ a {
 }
 
 .estado i {
-  font-size: 9px;
+  font-size: var(--t-micro);
   font-style: normal;
   line-height: 1;
 }
@@ -863,7 +2148,7 @@ a {
   overflow: hidden;
   color: var(--muted-2);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--t-mini);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -887,12 +2172,1145 @@ a {
 
 .cadencia b {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--t-mini);
   font-weight: 550;
 }
 
 .nao-medido {
   color: var(--muted-2);
-  font-size: 11px;
+  font-size: var(--t-mini);
   font-style: italic;
+}
+
+/* ── interruptor do painel do mapa ─────────────────────────────────────── */
+
+.chave-mapa {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: var(--e-3);
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  color: var(--muted);
+  text-align: left;
+}
+
+.chave-mapa[aria-checked="true"] {
+  border-color: var(--border-2);
+  background: var(--surface-3);
+}
+
+.chave-mapa > span {
+  min-width: 0;
+}
+
+.chave-mapa b,
+.chave-mapa small {
+  display: block;
+}
+
+.chave-mapa b {
+  color: var(--text);
+  font-size: var(--t-mini);
+  font-weight: 650;
+}
+
+.chave-mapa small {
+  margin-top: 1px;
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+}
+
+/* ── cartão de indicador ───────────────────────────────────────────────── */
+
+.painel-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Selo de destaque do protótipo. Aqui ele nunca carrega tendência inventada: ou
+   é razão entre dois números já visíveis na tela, ou é rótulo de regime. */
+.painel-selo {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: var(--t-micro);
+  font-style: normal;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.painel-selo.selo-ok {
+  background: color-mix(in srgb, var(--estado-ok), transparent 86%);
+  color: var(--estado-ok);
+}
+
+.painel-selo.selo-atencao {
+  background: color-mix(in srgb, var(--high), transparent 86%);
+  color: var(--high);
+}
+
+/* ── visão geral: corpo + feed ─────────────────────────────────────────── */
+
+.grade-visao {
+  display: grid;
+  align-items: start;
+  gap: var(--e-2);
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 26vi, 366px);
+  margin-bottom: var(--e-3);
+}
+
+.coluna-visao {
+  display: grid;
+  min-width: 0;
+  gap: var(--e-2);
+}
+
+.coluna-visao > .duas-colunas {
+  margin-bottom: 0;
+}
+
+.feed {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 0;
+}
+
+.feed-cabecalho {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: var(--e-3) var(--e-3) var(--e-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.feed-cabecalho h2 {
+  margin: 3px 0 0;
+  font-size: var(--t-titulo-cartao);
+}
+
+.selo-fluxo {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-2);
+  border-radius: 999px;
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+  font-weight: 750;
+  letter-spacing: 0.07em;
+}
+
+.selo-fluxo i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.selo-fluxo.ativo {
+  border-color: color-mix(in srgb, var(--ok), transparent 62%);
+  color: var(--ok);
+}
+
+.selo-fluxo.ativo i {
+  animation: pulsar-ponto 2.4s var(--ease) infinite;
+}
+
+.feed-lista {
+  display: grid;
+  min-height: 0;
+  padding: 6px;
+}
+
+/* Como coluna lateral, o feed não pode ditar a altura da linha: num monitor de
+   2560px ele ficava mais alto que os gráficos ao lado e abria um vazio de várias
+   centenas de pixels sob eles. Com teto e rolagem própria, a linha volta a ser
+   governada pelo conteúdo principal. */
+@media (min-width: 1181px) {
+  .feed-lista {
+    max-height: clamp(300px, 44dvh, 560px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+}
+
+.feed-item {
+  display: grid;
+  align-items: center;
+  gap: 0 10px;
+  grid-template-columns: minmax(0, 1fr) 15px;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.feed-item:hover {
+  background: var(--surface-2);
+}
+
+.feed-item > * {
+  grid-column: 1;
+}
+
+.feed-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.feed-topo small {
+  color: var(--muted-2);
+  font-size: var(--t-micro);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rotulo-severidade {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--t-micro);
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.feed-item > strong {
+  margin-top: 5px;
+  overflow: hidden;
+  font-size: var(--t-menor);
+  font-weight: 620;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feed-lugar {
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--t-mini);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feed-meta {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted-2);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feed-seta {
+  grid-row: 1 / -1;
+  grid-column: 2;
+  color: var(--muted-2);
+}
+
+.feed-rodape {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: var(--t-menor);
+  font-weight: 600;
+}
+
+.feed-rodape:hover {
+  color: var(--text);
+}
+
+/* ── tabela: invólucro rolável e linha acionável ───────────────────────── */
+
+/* Sem isto, sete colunas empurram a página inteira na faixa em que a tabela
+   ainda não virou cartão — e o `body` passa a rolar na horizontal. */
+.tabela-rolagem {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.tabela tbody tr[role="link"] {
+  cursor: pointer;
+}
+
+.carregar-mais {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: var(--e-3);
+  border: 1px dashed var(--border-2);
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--t-menor);
+  font-weight: 600;
+}
+
+.carregar-mais:hover:not(:disabled) {
+  border-style: solid;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.carregar-mais:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* ── integridade da coleta ─────────────────────────────────────────────── */
+
+.integridade {
+  margin-bottom: var(--e-3);
+}
+
+.integridade.com-falha {
+  border-color: color-mix(in srgb, var(--estado-bloqueado), transparent 55%);
+}
+
+.integridade-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--e-3);
+  flex-wrap: wrap;
+}
+
+.integridade-cabecalho .estado {
+  font-size: var(--t-corpo);
+  font-weight: 600;
+}
+
+.integridade-fila {
+  color: var(--muted-2);
+  font-size: var(--t-mini);
+  font-variant-numeric: tabular-nums;
+}
+
+.integridade-lista {
+  display: grid;
+  gap: 6px;
+  margin: var(--e-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.integridade-lista li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--e-3);
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--t-menor);
+}
+
+.integridade-lista strong {
+  font-weight: 620;
+}
+
+.integridade-lista span {
+  color: var(--muted);
+  font-size: var(--t-mini);
+}
+
+/* ── métricas cruas por fonte ──────────────────────────────────────────── */
+
+.metricas-fonte {
+  margin-top: var(--e-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--e-2);
+}
+
+.metricas-fonte > summary {
+  color: var(--muted-2);
+  cursor: pointer;
+  font-size: var(--t-mini);
+  font-weight: 650;
+  letter-spacing: 0.05em;
+}
+
+.metricas-fonte-bloco {
+  margin-top: 9px;
+}
+
+.metricas-fonte-nome {
+  color: var(--muted-2);
+  font-family: var(--mono);
+  font-size: var(--t-micro);
+  text-transform: uppercase;
+}
+
+.metricas-fonte dl {
+  display: grid;
+  gap: 2px;
+  margin: 5px 0 0;
+}
+
+.metricas-fonte dl > div {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--t-mini);
+}
+
+.metricas-fonte dt {
+  color: var(--muted-2);
+  overflow-wrap: anywhere;
+}
+
+.metricas-fonte dd {
+  margin: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+/* ── tela reservada ────────────────────────────────────────────────────── */
+
+.vazio-icone {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto var(--e-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  color: var(--muted);
+  place-items: center;
+}
+
+.vazio .acao-principal {
+  margin-top: var(--e-4);
+}
+
+/* ── agrupamento geográfico ─────────────────────────────────────────────── */
+
+.marcador-cluster {
+  position: absolute;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--border-2);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface), transparent 4%);
+  box-shadow: var(--shadow-sm), inset 0 0 0 3px color-mix(in srgb, currentColor, transparent 70%);
+  color: var(--moderate);
+  font-size: var(--t-mini);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+}
+
+.marcador-cluster.high { color: var(--high); }
+.marcador-cluster.critical { color: var(--critical); }
+.marcador-cluster:hover { transform: scale(1.08); }
+.marcador-cluster.selecionado { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.marcador-cluster::after {
+  position: absolute;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  content: "";
+  inset: -5px;
+  opacity: .35;
+}
+
+/* ── responsividade ─────────────────────────────────────────────────────
+ *
+ * A escala já é contínua: tamanho de fonte, recuo, altura de topo e largura de
+ * página vêm de `clamp()` em tokens.css e valem para qualquer largura. O que
+ * sobra aqui é só mudança de FORMA — barra lateral que vira gaveta, tabela que
+ * vira cartão, coluna que sai de cena. Cada regra abaixo existe porque alguma
+ * coisa muda de arranjo, nunca porque muda de tamanho.
+ *
+ * Os flutuantes do mapa não estão aqui: reagem à largura do próprio mapa por
+ * `@container`, que é a medida certa quando o elemento divide a linha com uma
+ * barra de filtros que pode estar aberta ou não.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+/* Ponteiro grosso. NÃO é sinônimo de celular: um laptop com tela sensível cai
+   aqui e um celular com mouse não — e é o ponteiro, não a largura, que decide o
+   tamanho mínimo do alvo. */
+@media (pointer: coarse) {
+  .nav-item,
+  .paleta-item,
+  .feed-item,
+  .chips button,
+  .segmentado-mapa button,
+  .abas-base button,
+  .popover-camadas button,
+  .acao-principal,
+  .carregar-mais,
+  .campo input {
+    min-height: 44px;
+  }
+
+  .btn-icone,
+  .btn-mapa {
+    width: 40px;
+    height: 40px;
+  }
+
+  .pilha-zoom button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .busca-mapa {
+    height: 42px;
+  }
+
+  /* O alvo é a caixa inteira, não a linha de texto: sem esticar, o `input` mede
+     16px de altura dentro de um rótulo de 42px, e três quartos do que parece
+     campo não respondem ao toque. */
+  .busca-mapa input {
+    align-self: stretch;
+  }
+
+  /* O marcador cresce como ALVO sem crescer como desenho: o diâmetro visível
+     codifica magnitude e não pode ser inflado. A caixa vai a 40px e os
+     pseudoelementos passam a ser dimensionados a partir do centro, em vez de por
+     `inset` — que os faria acompanhar a caixa. O MapLibre ancora o marcador com
+     `translate(-50%, -50%)` sobre o próprio tamanho, então o centro não se move. */
+  .marcador {
+    width: max(40px, var(--tamanho-marcador, 18px));
+    height: max(40px, var(--tamanho-marcador, 18px));
+  }
+
+  .marcador::before {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    width: calc(var(--tamanho-marcador, 18px) - 8px);
+    height: calc(var(--tamanho-marcador, 18px) - 8px);
+    translate: -50% -50%;
+  }
+
+  .marcador::after {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    width: var(--tamanho-marcador, 18px);
+    height: var(--tamanho-marcador, 18px);
+    translate: -50% -50%;
+  }
+
+  .marcador[aria-pressed="true"]::before {
+    inset: auto;
+    width: calc(var(--tamanho-marcador, 18px) - 2px);
+    height: calc(var(--tamanho-marcador, 18px) - 2px);
+  }
+
+  .marcador-cluster {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* Tooltip de marcador depende de hover, que num toque vira um clique fantasma:
+     o primeiro toque só mostraria a dica e o segundo é que abriria o evento. */
+  .marcador-tooltip {
+    display: none !important;
+  }
+}
+
+/* Monitor grande. Sem isto a página parava em 1480 px e deixava faixas vazias
+   dos dois lados — o `clamp` da largura resolve o corpo, e aqui as grades ganham
+   as colunas que o espaço permite. */
+@media (min-width: 1600px) {
+  .painel-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .tres-colunas {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  }
+
+  .lista-eventos-mapa > button {
+    flex-basis: 264px;
+  }
+}
+
+/* A coluna do feed é a primeira a sair: os painéis e os gráficos respondem à
+   pergunta principal, ela é acompanhamento. */
+@media (max-width: 1180px) {
+  .grade-visao {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feed-lista {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+/* O campo de busca do topo vira botão de ícone antes de espremer a trilha. */
+@media (max-width: 1240px) {
+  .pilula-fontes {
+    display: none;
+  }
+}
+
+@media (max-width: 1080px) {
+  .abrir-busca {
+    display: none;
+  }
+
+  .buscar-compacto {
+    display: grid;
+  }
+}
+
+/* ── barra lateral vira gaveta ─────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .app {
+    height: 100dvh;
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .area {
+    width: 100%;
+    height: 100dvh;
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(84vw, 300px);
+    border-right-color: var(--border-2);
+    box-shadow: var(--shadow-md);
+    transform: translateX(-105%);
+    transition: transform 0.22s var(--ease);
+  }
+
+  .sidebar.aberto {
+    transform: translateX(0);
+  }
+
+  .marca {
+    padding-right: var(--e-2);
+  }
+
+  .abrir-menu,
+  .fechar-menu {
+    display: grid;
+  }
+
+  .scrim-menu {
+    position: fixed;
+    z-index: 59;
+    display: block;
+    border: 0;
+    background: color-mix(in srgb, var(--bg), transparent 25%);
+    inset: 0;
+    backdrop-filter: blur(3px);
+  }
+
+  .pilula-fluxo .pilula-texto {
+    display: none;
+  }
+
+  .pilula-fluxo {
+    padding: 6px;
+  }
+
+  .painel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tres-colunas,
+  .duas-colunas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .conteudo.sem-rolagem {
+    height: calc(100dvh - var(--altura-topbar));
+  }
+
+  /* Mapa em coluna única: filtros, mapa, faixa. O piso do mapa continua em
+     `dvh`, então ele não some quando os filtros ficam altos. */
+  .layout-mapa-operacional {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(clamp(300px, 50dvh, 560px), 1fr) auto;
+  }
+
+  .painel-mapa {
+    grid-row: auto;
+    overflow: visible;
+  }
+
+  /* Os controles se espalham na largura em vez de empilhar: numa tela de 800 px
+     a coluna única deixava a janela de tempo sozinha numa linha de 800 px. */
+  .mapa-controles {
+    display: grid;
+    align-items: start;
+    gap: 0 var(--e-4);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .ajuda-mapa,
+  .dica-mapa,
+  .chave-mapa {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ── celular ───────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .trilha span {
+    display: none;
+  }
+
+  .trilha strong {
+    margin-left: 0;
+  }
+
+  .cabecalho-tela {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--e-3);
+  }
+
+  .cabecalho-pagina {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .cabecalho-pagina .chips {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .chips button {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
+
+  .campo {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .campo input {
+    width: 92px;
+  }
+
+  .atualizado {
+    width: 100%;
+    margin-left: 0;
+    text-align: right;
+  }
+
+  .painel span,
+  .painel small {
+    overflow-wrap: anywhere;
+  }
+
+  .barra-linha {
+    gap: 8px;
+    grid-template-columns: minmax(96px, 0.9fr) minmax(0, 1fr) 34px;
+  }
+
+  /* Tabela vira cartão. Com sete colunas não existe largura de celular em que a
+     grade funcione; o rótulo de cada célula vem de `data-label`. */
+  .tabela-rolagem {
+    overflow-x: visible;
+  }
+
+  .tabela,
+  .tabela tbody,
+  .tabela tr,
+  .tabela td {
+    display: block;
+    width: 100%;
+  }
+
+  .tabela thead {
+    display: none;
+  }
+
+  .tabela tbody {
+    display: grid;
+    gap: 10px;
+  }
+
+  .tabela tr {
+    padding: 12px 13px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    background: var(--surface);
+  }
+
+  .tabela td {
+    display: grid;
+    align-items: baseline;
+    gap: 12px;
+    grid-template-columns: minmax(84px, 0.42fr) minmax(0, 1fr);
+    padding: 6px 0;
+    border: 0;
+    text-align: left !important;
+  }
+
+  .tabela td::before {
+    color: var(--muted-2);
+    content: attr(data-label);
+    font-size: var(--t-micro);
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .tabela td:first-child {
+    display: block;
+    padding: 0 0 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tabela td:first-child::before {
+    display: none;
+  }
+
+  .tabela-compacta td[data-label="Magnitude"] {
+    display: none;
+  }
+
+  .tabela-compacta td {
+    padding-block: 4px;
+  }
+
+  .tabela-fontes td:first-child {
+    max-width: none;
+  }
+
+  .tabela-fontes .endpoint {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  .cadencia {
+    grid-template-columns: minmax(54px, 1fr) auto;
+  }
+
+  .integridade-lista li {
+    display: grid;
+    gap: 2px;
+  }
+
+  /* Painel do mapa recolhido: os KPIs e o botão ficam, os filtros vêm sob
+     demanda. Numa tela de 360 px eles ocupariam a altura útil inteira antes de o
+     mapa aparecer. */
+  .painel-mapa {
+    display: block;
+    padding: var(--e-2);
+  }
+
+  .mapa-pagina {
+    padding: var(--e-3);
+  }
+
+  .painel-mapa-cabecalho h2 {
+    font-size: var(--t-medio);
+  }
+
+  .mapa-kpis {
+    margin: 10px 0 0;
+  }
+
+  .alternar-resumo {
+    display: flex;
+    width: 100%;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+    border-radius: var(--r-sm);
+    background: var(--surface-2);
+    font-size: var(--t-mini);
+    font-weight: 650;
+  }
+
+  .mapa-controles {
+    display: none;
+  }
+
+  .painel-mapa.expandido .mapa-controles {
+    display: grid;
+  }
+
+  .lista-eventos-mapa > button {
+    flex-basis: min(76vw, 250px);
+  }
+
+  .metricas {
+    gap: 8px;
+  }
+
+  .metrica {
+    min-width: 0;
+    padding: 10px;
+  }
+
+  .metrica span {
+    min-height: 22px;
+  }
+
+  .proc-linha {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .proc-linha strong {
+    overflow-wrap: anywhere;
+  }
+
+  .proc-campo {
+    align-items: start;
+    gap: 5px;
+    grid-template-columns: 76px minmax(0, 1fr);
+    margin-bottom: 12px;
+  }
+
+  .proc-campo > div {
+    min-width: 0;
+  }
+
+  .proc-campo b {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* ── celular estreito ──────────────────────────────────────────────────── */
+
+@media (max-width: 400px) {
+  .painel-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mapa-kpis {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  /* Terceiro KPI ocupa a linha inteira em vez de virar uma coluna de 60 px. */
+  .mapa-kpis div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .paleta-item > small {
+    display: none;
+  }
+}
+
+/* ── janela baixa (celular deitado, laptop pequeno) ───────────────────────
+ *
+ * O piso de 46dvh do mapa é razoável em pé e absurdo deitado, onde a janela
+ * inteira tem 360 px de altura: o mapa tomaria a tela e os filtros nunca
+ * apareceriam. Aqui o piso cai e a página passa a rolar.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+@media (max-height: 620px) and (min-width: 641px) {
+  .layout-mapa-operacional {
+    grid-template-rows: minmax(260px, 1fr) auto;
+  }
+
+  .paleta {
+    top: 12px;
+  }
+
+  .paleta-resultados {
+    max-height: 52dvh;
+  }
+}
+
+@media (max-height: 620px) {
+  .mapa-pagina .cabecalho-tela p {
+    display: none;
+  }
+
+  .mapa-pagina .cabecalho-tela h2 {
+    margin: 5px 0 0;
+    font-size: var(--t-titulo-cartao);
+  }
+}
+
+@media (max-height: 520px) {
+  .marca {
+    height: 56px;
+  }
+
+  .layout-mapa-operacional {
+    grid-template-rows: auto minmax(240px, 1fr) auto;
+  }
+}
+
+/* ── Drawer lateral, estrutura do componente shadcn/Base UI ────────────── */
+
+.drawer-overlay {
+  position: fixed;
+  z-index: 40;
+  min-height: 100dvh;
+  background: rgb(0 0 0 / calc(.55 * (1 - var(--drawer-swipe-progress, 0))));
+  opacity: 1;
+  inset: 0;
+  transition: opacity 320ms var(--ease);
+}
+
+.drawer-overlay[data-starting-style],
+.drawer-overlay[data-ending-style] { opacity: 0; }
+
+.drawer-viewport {
+  position: fixed;
+  z-index: 41;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  pointer-events: none;
+  inset: 0;
+}
+
+.drawer-content.cartao-evento {
+  position: relative;
+  display: flex;
+  width: min(430px, calc(100vw - 24px));
+  height: 100dvh;
+  max-height: none;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0;
+  border-left: 1px solid var(--border-2);
+  border-radius: 0;
+  background: var(--surface);
+  box-shadow: -18px 0 60px rgb(0 0 0 / 38%);
+  outline: none;
+  pointer-events: auto;
+  touch-action: pan-y;
+  transform: translateX(var(--drawer-swipe-movement-x, 0));
+  transition: transform 360ms var(--ease);
+}
+
+.drawer-content.cartao-evento[data-starting-style],
+.drawer-content.cartao-evento[data-ending-style] { transform: translateX(100%); }
+
+.drawer-content.cartao-evento[data-swiping] {
+  user-select: none;
+  transition-duration: 0ms;
+}
+
+.drawer-header {
+  display: flex;
+  min-height: auto;
+  flex: 0 0 auto;
+  align-items: start;
+  gap: var(--e-3);
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--e-4) var(--e-4) var(--e-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.drawer-identidade { min-width: 0; }
+
+.drawer-identidade > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: var(--t-micro);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.drawer-identidade h2 {
+  margin: 9px 0 4px;
+  font-size: var(--t-titulo-cartao);
+  letter-spacing: -.025em;
+}
+
+.drawer-identidade p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--t-mini);
+}
+
+.drawer-content.cartao-evento .cartao-evento-corpo {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  padding: 20px 22px 28px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.drawer-content.cartao-evento::before { display: none; }
+
+@media (max-width: 640px) {
+  .drawer-content.cartao-evento {
+    width: min(94vw, 390px);
+    height: 100dvh;
+  }
+
+  .drawer-content.cartao-evento .cartao-evento-corpo {
+    padding: var(--e-3) var(--e-3) max(24px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 420px) {
+  /* Sangria plena: a procedência campo a campo não cabe em 336 px com uma nesga
+     de cenário do lado, e o cartão é a tela inteira nesse tamanho. */
+  .drawer-content.cartao-evento {
+    width: 100vw;
+    border-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-overlay,
+  .drawer-content.cartao-evento { transition-duration: 0ms; }
+  .marcador-cluster:hover { transform: none; }
 }

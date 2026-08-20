@@ -10,7 +10,9 @@ export default defineConfig({
       // ficam atrás do mesmo host, e o desenvolvimento imita isso.
       // Prefixo /api porque as rotas do SPA (/eventos, /fontes) casariam com o
       // proxy antes do fallback e o navegador receberia JSON em vez da aplicação.
-      "/api": "http://localhost:8000",
+      // `ws: true` porque /api/eventos/stream é WebSocket: sem isso o proxy
+      // responde 426 ao upgrade e o fluxo ao vivo nunca conecta em dev.
+      "/api": { target: "http://localhost:8000", ws: true },
       "/saude": "http://localhost:8000",
     },
   },

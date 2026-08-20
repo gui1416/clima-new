@@ -62,8 +62,53 @@ html[data-theme="light"] {
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 28%), 0 4px 14px rgb(0 0 0 / 22%);
   --shadow-md: 0 8px 30px rgb(0 0 0 / 34%);
   --ease: cubic-bezier(0.2, 0.8, 0.25, 1);
-  --largura-sidebar: 244px;
-  --altura-topbar: 68px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Escala fluida
+   ═══════════════════════════════════════════════════════════════════════════
+
+   A responsividade mora aqui primeiro, e nos `@media` só em segundo lugar.
+
+   O motivo é concreto: a versão anterior redefinia tamanho de fonte, altura de
+   topo e recuo de página dentro de três `@media`, o que deixava a interface
+   correta em 640 px e em 900 px e visivelmente errada em 700 px — e sem nada
+   definido acima de 1480 px, onde a página simplesmente parava de crescer e
+   deixava faixas vazias dos dois lados num monitor de 2560 px.
+
+   Com `clamp()` cada medida é contínua entre um piso e um teto, e o layout passa
+   a valer para *qualquer* largura, não para as três que foram testadas. Os
+   `@media` que sobraram tratam do que de fato muda de forma — barra lateral que
+   vira gaveta, tabela que vira cartão —, não de tamanho.
+
+   `vi` (inline size) em vez de `vw`: `vw` inclui a largura da barra de rolagem,
+   e num contêiner que rola isso produz um vaivém de meio pixel a cada repintura.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Espaço. Passo de ~1,5 entre degraus, todos fluidos. */
+  --e-1: clamp(4px, 0.4vi + 2px, 6px);
+  --e-2: clamp(8px, 0.7vi + 4px, 12px);
+  --e-3: clamp(12px, 1vi + 6px, 18px);
+  --e-4: clamp(16px, 1.4vi + 8px, 24px);
+  --e-5: clamp(20px, 2vi + 10px, 34px);
+  --e-6: clamp(28px, 3vi + 14px, 52px);
+
+  /* Tipografia. O corpo cresce só 1 px entre o celular e o monitor grande: o que
+     precisa escalar é o título, não o texto corrido. */
+  --t-micro: clamp(8.5px, 0.15vi + 8px, 10px);
+  --t-mini: clamp(9.5px, 0.2vi + 9px, 11px);
+  --t-menor: clamp(10.5px, 0.2vi + 10px, 12px);
+  --t-corpo: clamp(13px, 0.12vi + 12.6px, 14px);
+  --t-medio: clamp(14px, 0.3vi + 13px, 16px);
+  --t-titulo-cartao: clamp(14px, 0.4vi + 13px, 18px);
+  --t-numero: clamp(20px, 1.4vi + 14px, 30px);
+  --t-titulo: clamp(21px, 2.2vi + 13px, 38px);
+
+  /* Estrutura do shell. */
+  --largura-sidebar: clamp(212px, 17vi, 256px);
+  --altura-topbar: clamp(56px, 3.6vi + 34px, 76px);
+  --largura-pagina: clamp(900px, 96vi, 1720px);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

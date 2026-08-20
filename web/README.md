@@ -2,10 +2,17 @@
 
 React + TypeScript + Vite + MapLibre GL. Interface em pt-BR.
 
-Estado: shell navegável com mapa mundial funcional sobre **dados de
-demonstração**. A API de produto não existe ainda (Fase 3 do
-[plano](../docs/plano-de-construcao.md)), então só duas das seis telas têm dado
-que as sustente; as outras quatro são espaço reservado que diz o que falta.
+Estado: seis rotas sobre **dado real** da API de produto (`/api`). Quatro têm
+dado que as sustente — visão geral, mapa, eventos e fontes; alertas e relatórios
+continuam reservadas, e o texto de cada uma diz de que portão do
+[plano](../docs/plano-de-construcao.md) elas dependem.
+
+A gramática visual é a de `clima-global-prototipo-v2.html`: mesmo sprite de
+ícones, mesmo cabeçalho de tela, mesma barra lateral, mesma paleta de comandos
+(⌘K), mesmos flutuantes sobre o mapa. O que **não** foi portado do protótipo é
+tudo que era dado inventado — o perfil de usuário na barra lateral virou o estado
+real da coleta, e os selos de tendência ("+12% hoje") viraram razões entre números
+que já estão na tela.
 
 ## Comandos
 
@@ -30,6 +37,10 @@ npm run build
 npm run verificar
 ```
 
+```bash
+npm run verificar-responsivo
+```
+
 Abre a aplicação num Chromium headless e verifica que o mapa **de fato** renderiza,
 salvando uma captura em `.artefatos/`. Precisa do servidor de desenvolvimento no ar
 (`--tema=light` verifica o outro tema).
@@ -48,23 +59,44 @@ marcadores no DOM" e uma captura plausível diziam que estava tudo bem enquanto 
 apontavam para o lugar errado. Daí a verificação comparar cada elemento com
 `map.project()` em vez de só contar elementos.
 
+`verificar-responsivo` abre as quatro rotas com dado em dez tamanhos de tela — de
+320×568 a 2560×1440, incluindo o telefone deitado (812×375) — e falha se houver
+rolagem horizontal, se o mapa ficar menor que 240×200, ou se algum alvo tiver menos
+de 40 px em ponteiro grosso. Ele ignora o que é o desenho funcionando (marcador
+fora do enquadramento, tabela dentro de `.tabela-rolagem`) verificando se algum
+ancestral recorta o elemento.
+
+Existe pela mesma razão que a verificação do mapa: responsividade não é
+verificável por inspeção. O que quebra num layout fluido quase nunca aparece na
+largura em que se está olhando — uma tabela de sete colunas empurra o `body` a
+700 px e não a 1440; um piso de altura em `dvh` esmaga o mapa a 375 px de altura e
+não a 900. As três telas que se costuma testar são justamente as três em que já
+se olhou.
+
+O script tem um marcapasso próprio: quarenta carregamentos de página passam das
+120 requisições por minuto do limitador da API, e uma tela renderizada com 429
+mede outra coisa. Ele conta as próprias requisições e espera caber na janela.
+
 Se o Chromium reclamar de biblioteca faltando, o caminho limpo é
 `sudo npx playwright install-deps`. Sem root, dá para extrair os `.deb` de
 `libnspr4`, `libnss3` e `libasound2t64` em `.artefatos/libs` — o script detecta e
 usa automaticamente.
 
-## Os dados vêm do protótipo, por script
+## A geometria vem do protótipo, por script
 
-`npm run dados` — roda automaticamente antes de `dev` e de `build` — extrai duas
-coisas de `clima-global-prototipo-v2.html` para `public/dados/`:
+`npm run dados` — roda automaticamente antes de `dev` e de `build` — extrai a
+**geometria** de `clima-global-prototipo-v2.html` para `public/dados/`:
 
 | Script | Saída | O que faz |
 |---|---|---|
 | `scripts/geometria-do-prototipo.mjs` | `paises.json` (187 KB) | Converte a geometria Natural Earth 1:50m de coordenadas projetadas para lat/lon |
-| `scripts/eventos-do-prototipo.mjs` | `eventos-demo.json` | Extrai os 18 eventos de demonstração |
 
-As saídas **não são versionadas**: são derivadas, e o protótipo é a única fonte de
-verdade. Transcrever à mão criaria uma segunda.
+Só a geometria. Os 18 eventos de demonstração do protótipo saíram quando o
+back-end passou a entregar sismos reais — evento agora vem de `/api/eventos`, e
+manter uma segunda fonte seria manter uma segunda verdade.
+
+A saída **não é versionada**: é derivada, e o protótipo é a única fonte. Transcrever
+à mão criaria uma cópia que envelhece sozinha.
 
 ### A conversão de geometria
 
@@ -104,15 +136,21 @@ respeita esse recorte para não mostrar oceano vazio.
 
 ```
 src/
-├─ estilos/tokens.css   tokens portados do protótipo — não redesenhar
-├─ estilos/base.css     layout, componentes, marcadores
-├─ tipos.ts             Evento, Severidade. NÃO é o contrato final
-├─ tema.ts              data-theme + localStorage, com barramento de inscrição
-├─ dados/carregar.ts    busca os assets em runtime
-├─ mapa/estilo.ts       estilo MapLibre montado em código, sem fonte externa
-├─ mapa/MapaGlobal.tsx  mapa, marcadores, legenda, cartão do evento
-├─ rotas.tsx            as seis rotas
-└─ App.tsx              sidebar, topbar, roteamento
+├─ estilos/tokens.css        cores do protótipo + escala fluida (clamp)
+├─ estilos/base.css          shell, componentes, marcadores, camada responsiva
+├─ tipos.ts                  espelha api/clima/api/esquemas.py
+├─ formato.ts                pt-BR num lugar só: vírgula decimal, 24 h, fuso local
+├─ tema.ts                   data-theme + localStorage, com barramento de inscrição
+├─ dados/api.ts              cliente REST, hook de polling e o fluxo ao vivo
+├─ dados/carregar.ts         busca a geometria em runtime
+├─ componentes/Icones.tsx    sprite SVG portado do protótipo
+├─ componentes/PaletaComandos.tsx  busca global (⌘K) sobre dado real
+├─ componentes/ui/drawer.tsx gaveta do cartão de evento (Base UI)
+├─ mapa/estilo.ts            estilo MapLibre montado em código, sem fonte externa
+├─ mapa/MapaGlobal.tsx       mapa, flutuantes, filtros, faixa de eventos
+├─ mapa/CartaoEvento.tsx     procedência campo a campo do evento selecionado
+├─ rotas.tsx                 as seis telas
+└─ App.tsx                   barra lateral, topo, roteamento, ⌘K
 ```
 
 ### Decisões que não são óbvias
@@ -131,11 +169,54 @@ src/
   ~12 KB de aplicação que mudam a cada deploy. Separados, atualizar a aplicação não
   invalida o cache do mapa.
 
+### Responsividade: a escala primeiro, o `@media` depois
+
+A regra é que **tamanho** se resolve em `clamp()` nos tokens e **forma** se
+resolve em `@media`. Espaço, tipografia, largura da barra lateral, altura do topo
+e largura máxima da página são todos contínuos (`--e-1`…`--e-6`, `--t-micro`…
+`--t-titulo`), então valem para qualquer largura em vez de para as três que foram
+testadas. Sobra para os `@media` só o que de fato muda de arranjo: a barra lateral
+vira gaveta em 900 px, a tabela de sete colunas vira cartão em 640 px, a coluna do
+feed sai em 1180 px.
+
+A versão anterior fazia o contrário — redefinia `font-size` e `padding` dentro de
+três `@media` — e ficava correta em 640 e em 900 px e visivelmente errada em
+700 px. Acima de 1480 px não havia nada, e a página parava de crescer.
+
+Três decisões que não se veem no CSS:
+
+- **Consultas de contêiner nos flutuantes do mapa.** Abas de estilo e leitura de
+  coordenadas somem por `@container mapa (max-width: …)`, não por largura de
+  janela. Num laptop de 1280 px com a barra de filtros aberta o mapa tem os mesmos
+  ~900 px que teria num tablet sem barra, e é a largura do mapa que decide se as
+  abas cabem.
+- **Ponteiro grosso, não "celular".** Os alvos de 44 px vêm de
+  `@media (pointer: coarse)`. Um laptop com tela sensível cai nessa regra e um
+  celular ligado a um mouse não — é o ponteiro que define o alvo, não a largura.
+  O marcador do mapa cresce como alvo sem crescer como desenho: o diâmetro visível
+  codifica magnitude e não pode ser inflado, então a caixa vai a 40 px e os
+  pseudoelementos passam a ser medidos a partir do centro.
+- **A altura do mapa é o resto, com piso.** Era
+  `calc(100dvh - 330px)` — a soma à mão das alturas do topo, do cabeçalho e da
+  faixa. Bastava um título quebrar em duas linhas para o número mentir, e em janela
+  baixa ele ficava negativo. Hoje é `minmax(clamp(280px, 46dvh, 560px), 1fr)`: o
+  que não couber rola, em vez de esmagar o canvas. Pelo mesmo motivo o `minZoom`
+  do MapLibre passou a ser medido em vez de fixo — `0.6` fixo abria o mapa num
+  celular mostrando 40% do planeta, sem como afastar.
+
 ## O que falta
 
 - Projeção: o protótipo é equirretangular, o MapLibre é Mercator. Diferença
   visível nas latitudes altas; decidir se vale customizar.
 - Nenhum teste. A suíte do front entra junto com a API real, para não testar
   contra dado de demonstração que vai ser jogado fora.
-- **Painel de procedência** (`/procedencia`) é a tela do diferencial e não existe
-  no protótipo. Depende de `event_field_claims` — Fase 2.
+- **Fila de revisão** (`/api/revisoes`) existe no back-end e não tem tela. Ela
+  exige `X-API-Key` administrativa, então depende de decidir como a interface
+  guarda credencial de operador.
+- **Tiles vetoriais** (`/api/tiles/{z}/{x}/{y}.mvt`) existem e não são usados: com
+  algumas centenas de eventos por janela, o GeoJSON de `/api/eventos` é menor que o
+  custo de uma camada de tiles. Vale trocar quando a janela passar de alguns
+  milhares.
+- **`bbox` no servidor.** A faixa "eventos no enquadramento" recorta pelo limite do
+  mapa no navegador, porque o dado já está lá. `bbox` só compensa quando o
+  enquadramento passar a conter mais eventos do que cabe numa resposta.

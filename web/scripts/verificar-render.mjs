@@ -45,8 +45,18 @@ const problemas = [];
 const navegador = await chromium.launch();
 const pagina = await navegador.newPage({ viewport: { width: 1440, height: 900 } });
 
+// `/saude` responde 503 de propósito quando há lacuna de coleta, e o Chromium
+// registra toda resposta de erro no console. É estado esperado do produto, não
+// falha de renderização — e a interface trata o 503 lendo o corpo. Sem este
+// filtro, a verificação do mapa passaria a falhar sempre que a coleta tivesse
+// uma lacuna, que é justamente quando ela precisa continuar utilizável.
+const RUIDO_ESPERADO = [/Failed to load resource.*503/i];
+
 pagina.on("console", (m) => {
-  if (m.type() === "error") problemas.push(`console: ${m.text()}`);
+  if (m.type() !== "error") return;
+  const texto = m.text();
+  if (RUIDO_ESPERADO.some((r) => r.test(texto))) return;
+  problemas.push(`console: ${texto}`);
 });
 pagina.on("pageerror", (e) => problemas.push(`exceção: ${e.message}`));
 

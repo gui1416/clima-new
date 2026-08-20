@@ -66,7 +66,8 @@ export interface CampoDivergente {
 }
 
 export interface EventoDetalhe extends EventoResumo {
-  metricas: Record<string, unknown>;
+  /** Métricas cruas por fonte. Fonte com licença restrita não aparece aqui. */
+  metricas: Record<string, Record<string, unknown>>;
   procedencia: Procedencia[];
   campos: CampoDivergente[];
 }
@@ -76,6 +77,25 @@ export interface Pagina {
   itens: EventoResumo[];
   deduplicado: boolean;
   aviso: string | null;
+  /** Cursor da próxima página. Nulo quando a lista acabou. */
+  proximo_cursor: string | null;
+}
+
+/** Integridade da coleta, de `/saude`. O endpoint responde 503 quando há lacuna,
+ *  fonte silenciosa ou fila de análise parada — e o corpo diz qual das três. */
+export interface Lacuna {
+  source_id: string;
+  de: string;
+  ate: string;
+  duracao_seg: number;
+}
+
+export interface Saude {
+  saudavel: boolean;
+  payloads_aguardando_analise: number;
+  lacunas: Lacuna[];
+  silenciosas: string[];
+  linhas_na_particao_default: number;
 }
 
 export interface Estatisticas {

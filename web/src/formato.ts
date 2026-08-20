@@ -32,3 +32,16 @@ export function instante(iso: string | null): string {
 }
 
 export const relogio = (d: Date | null): string => (d ? HORA.format(d) : "—");
+
+/** Data e hora completas, para quando o instante exato importa mais que "há 8 min"
+ *  — o painel de procedência é o caso: ali o horário É o dado em disputa. */
+const DATA_HORA_COMPLETA = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+});
+
+export const dataHora = (d: Date): string => DATA_HORA_COMPLETA.format(d);
