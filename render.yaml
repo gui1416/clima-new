@@ -1,0 +1,61 @@
+services:
+  - type: web
+    name: clima-global-api
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerContext: ./api
+    dockerfilePath: ./api/Dockerfile
+    healthCheckPath: /saude
+    startCommand: alembic upgrade head && uvicorn clima.app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_ADMIN
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: clima-global-redis
+          property: connectionString
+      - key: USER_AGENT
+        sync: false
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: LOG_JSON
+        value: "true"
+      - key: RATE_LIMIT_POR_MINUTO
+        value: "120"
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+
+  - type: worker
+    name: clima-global-worker
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerContext: ./api
+    dockerfilePath: ./api/Dockerfile
+    startCommand: alembic upgrade head && arq clima.workers.arq_app.WorkerSettings
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_ADMIN
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: clima-global-redis
+          property: connectionString
+      - key: USER_AGENT
+        sync: false
+      - key: LOG_JSON
+        value: "true"
+      - key: ALERT_WEBHOOK_URL
+        sync: false
+
+  - type: keyvalue
+    name: clima-global-redis
+    plan: free
+    region: oregon
+    ipAllowList: []
